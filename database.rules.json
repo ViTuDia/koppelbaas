@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "meta": {
+      "passwordHash": {
+        ".read": true,
+        ".write": false
+      }
+    },
+    "devTypes": { ".read": true, ".write": true },
+    "kansCats": { ".read": true, ".write": true },
+    "devs": { ".read": true, ".write": true },
+    "kansen": { ".read": true, ".write": true },
+    "matches": { ".read": true, ".write": true },
+    "users": { ".read": true, ".write": true }
+  }
+}
