@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>De Koppelbaas — ARD</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <style>
+    :root {
+      --bg: #fafaf9; --header: #d9a300; --headerTxt: #000; --headerSub: #00000088; --headerDiv: #00000033;
+      --panelBg: #fff; --kaart: #fff; --kaartBorder: #e8e7e4; --selBg: #fff; --footerBg: #fff;
+      --txtPrimary: #000; --txtSecondary: #878786; --zachtgrijs: #e8e7e4; --lichtgrijs: #f4f3f1;
+      --geel: #d9a300; --grijs: #878786; --blauw: #006f9d; --rood: #c22d0b; --groen: #007b2f; --oranje: #c97b1a;
+      --modalBg: #fff; --modalOverlay: rgba(0,0,0,0.4); --inputBorder: #e8e7e4;
+      --badgeBg: #2a2a2a; --badgeTxt: #fff;
+      --devSelBg: #000; --devSelTxt: #fff; --devSelBorder: #d9a300;
+      --devHlBg: #e8f5e9; --devHlBorder: #007b2f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Rubik','Helvetica Neue',sans-serif; background: var(--bg); color: var(--txtPrimary); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-thumb { background: var(--zachtgrijs); border-radius: 3px; }
+
+    /* Login */
+    #login-screen { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
+    #login-screen .logo { color: #fff; text-align: center; margin-bottom: 30px; }
+    #login-screen .logo-ard { font-size: 42px; font-weight: 700; letter-spacing: 5px; }
+    #login-screen .logo-sub { font-size: 10px; font-weight: 300; letter-spacing: 3px; color: #ffffff66; margin-top: 4px; }
+    #login-screen input { width: 260px; padding: 10px 14px; font-size: 14px; border: 1px solid #333; border-radius: 4px; background: #111; color: #fff; font-family: inherit; text-align: center; }
+    #login-screen input:focus { outline: none; border-color: var(--geel); }
+    #login-screen button { margin-top: 10px; padding: 10px 32px; font-size: 13px; font-weight: 500; background: var(--geel); color: #000; border: none; border-radius: 4px; cursor: pointer; font-family: inherit; }
+    #login-error { color: var(--rood); font-size: 12px; margin-top: 8px; min-height: 18px; }
+
+    /* Layout */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    .header { background: var(--header); color: var(--headerTxt); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .header-left { display: flex; align-items: center; gap: 18px; }
+    .header-logo-ard { font-size: 26px; font-weight: 700; letter-spacing: 3px; }
+    .header-logo-sub { font-size: 8px; font-weight: 300; letter-spacing: 2px; color: var(--headerSub); margin-top: 2px; }
+    .header-div { width: 1px; height: 32px; background: var(--headerDiv); }
+    .header-title-label { font-size: 9px; font-weight: 300; letter-spacing: 2px; color: var(--headerSub); text-transform: uppercase; }
+    .header-title-name { font-size: 20px; font-weight: 300; margin-top: 2px; }
+    .header-right { display: flex; gap: 16px; align-items: center; }
+    .header-stat { text-align: center; }
+    .header-stat-val { font-size: 20px; font-weight: 500; }
+    .header-stat-lbl { font-size: 8px; color: var(--headerSub); letter-spacing: 1px; text-transform: uppercase; font-weight: 300; }
+
+    .sel-bar { background: var(--selBg); border-bottom: 1px solid var(--zachtgrijs); padding: 6px 24px; min-height: 34px; display: flex; align-items: center; justify-content: space-between; }
+    .sel-bar-name { font-size: 12px; }
+    .sel-bar-slash { color: var(--geel); font-weight: 500; }
+
+    .main { display: flex; flex: 1; overflow: hidden; }
+    .left-panels { width: 500px; flex-shrink: 0; display: flex; border-right: 2px solid var(--zachtgrijs); }
+    .panel { width: 250px; background: var(--panelBg); overflow-y: auto; padding: 14px 10px; }
+    .panel:first-child { border-right: 1px solid var(--zachtgrijs); }
+    .panel-title { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+    .panel-sub { font-size: 10px; color: var(--txtSecondary); margin-bottom: 12px; font-weight: 300; }
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+
+    .pipeline { flex: 1; overflow-x: auto; display: flex; }
+    .pipe-col { flex: 1; min-width: 200px; display: flex; flex-direction: column; border-right: 1px solid var(--zachtgrijs); }
+    .pipe-col:last-child { border-right: none; }
+    .pipe-col-header { padding: 14px 14px 10px; background: var(--panelBg); height: 88px; display: flex; flex-direction: column; justify-content: space-between; }
+    .pipe-col-body { flex: 1; overflow-y: auto; padding: 8px 8px 50px; }
+
+    /* Kaarten */
+    .kans-card { padding: 8px 10px; margin-bottom: 4px; border-radius: 3px; border: 1px solid var(--kaartBorder); background: var(--kaart); cursor: grab; transition: opacity 0.12s; }
+    .match-card { margin-bottom: 8px; border-radius: 4px; cursor: grab; transition: all 0.12s; border: 1px solid var(--zachtgrijs); }
+
+    /* Dev items */
+    .dev-item { padding: 7px 10px; margin-left: 28px; margin-bottom: 2px; border-radius: 3px; cursor: pointer; transition: all 0.12s; display: flex; justify-content: space-between; align-items: center; }
+    .dev-type-header { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+
+    /* Badge */
+    .badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; background: var(--badgeBg); color: var(--badgeTxt); font-weight: 500; flex-shrink: 0; letter-spacing: 0.5px; }
+    .badge-sm { width: 18px; height: 18px; font-size: 8px; }
+    .badge-md { width: 22px; height: 22px; font-size: 10px; }
+    .badge-lg { width: 24px; height: 24px; font-size: 10px; }
+
+    /* Stage badge */
+    .stage-badge { padding: 2px 8px; font-size: 9px; font-weight: 500; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; white-space: nowrap; }
+
+    /* Knoppen */
+    .btn { padding: 8px 16px; font-size: 12px; font-weight: 500; border: none; border-radius: 3px; cursor: pointer; font-family: inherit; }
+    .btn-sm { padding: 3px 8px; font-size: 10px; }
+    .btn-xs { padding: 2px 6px; font-size: 10px; }
+    .btn-black { background: #000; color: #fff; }
+    .btn-grey { background: var(--lichtgrijs); color: var(--grijs); }
+    .btn-red { background: rgba(194,45,11,0.08); color: var(--rood); }
+    .btn-match { color: var(--geel); background: rgba(217,163,0,0.09); border: 1px solid rgba(217,163,0,0.2); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--grijs); font-family: inherit; padding: 2px 4px; }
+    .btn-add-col { width: 100%; padding: 9px; background: transparent; border: 2px dashed var(--zachtgrijs); border-radius: 4px; cursor: pointer; color: var(--grijs); font-size: 11px; font-family: inherit; margin-top: 4px; }
+    .btn-full { width: 100%; margin-top: 4px; }
+
+    /* Coalitie */
+    .coalition { padding: 5px 7px; margin-top: 3px; border-radius: 3px; background: rgba(217,163,0,0.03); border: 1.5px dashed rgba(217,163,0,0.33); font-size: 11px; cursor: pointer; }
+
+    /* Drop zone */
+    .drop-zone-active { padding: 10px; border: 2px dashed var(--geel); border-radius: 6px; text-align: center; color: var(--geel); font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+
+    /* Modals */
+    .modal-overlay { position: fixed; inset: 0; background: var(--modalOverlay); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: var(--modalBg); border-radius: 6px; width: 100%; max-height: 85vh; overflow: auto; box-shadow: 0 24px 64px rgba(0,0,0,0.3); color: var(--txtPrimary); }
+    .modal-head { padding: 14px 20px; border-bottom: 1px solid var(--zachtgrijs); display: flex; justify-content: space-between; align-items: center; }
+    .modal-head h3 { font-size: 16px; font-weight: 500; }
+    .modal-body { padding: 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { font-size: 10px; font-weight: 500; color: var(--txtSecondary); display: block; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+    .field input, .field select, .field textarea { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--inputBorder); border-radius: 3px; font-family: inherit; color: var(--txtPrimary); background: var(--kaart); }
+    .field textarea { min-height: 50px; resize: vertical; }
+
+    /* Checkbox */
+    .cb { width: 16px; height: 16px; border-radius: 2px; border: 2px solid var(--zachtgrijs); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+    .cb.checked { background: var(--geel); border-color: var(--geel); color: #000; }
+
+    /* Footer */
+    .footer { padding: 8px 24px; border-top: 1px solid var(--zachtgrijs); background: var(--footerBg); display: flex; justify-content: space-between; }
+    .footer span { font-size: 9px; color: var(--grijs); font-weight: 300; }
+
+    /* Print */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      [data-noprint] { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login -->
+  <div id="login-screen">
+    <div class="logo">
+      <div class="logo-ard">ARD</div>
+      <div class="logo-sub">ATELIERRUIMDENKERS</div>
+    </div>
+    <input type="password" id="login-pw" placeholder="Wachtwoord" autofocus>
+    <button onclick="KB.handleLogin()">Openen</button>
+    <div id="login-error"></div>
+  </div>
+
+  <!-- App -->
+  <div id="app">
+    <div id="board-container"></div>
+    <div id="modal-container"></div>
+  </div>
+
+  <script>
+// ════════════════════════════════════════════════════
+// DE KOPPELBAAS — ARD / AtelierRuimDenkers
+// ════════════════════════════════════════════════════
+
+const KB = {};
+
+// ─── A. CONSTANTEN ───────────────────────────────
+
+const LIGHT = {
+  zwart:"#000000",wit:"#ffffff",geel:"#d9a300",grijs:"#878786",
+  blauw:"#006f9d",rood:"#c22d0b",groen:"#007b2f",oranje:"#c97b1a",
+  lichtgrijs:"#f4f3f1",zachtgrijs:"#e8e7e4",bg:"#fafaf9",
+  header:"#d9a300",headerTxt:"#000000",headerSub:"#00000088",headerDiv:"#00000033",
+  kaart:"#ffffff",kaartBorder:"#e8e7e4",panelBg:"#ffffff",selBg:"#ffffff",footerBg:"#ffffff",
+  txtPrimary:"#000000",txtSecondary:"#878786",
+  devSelBg:"#000000",devSelTxt:"#ffffff",devSelBorder:"#d9a300",
+  devHlBg:"#e8f5e9",devHlBorder:"#007b2f",
+  modalBg:"#ffffff",modalOverlay:"rgba(0,0,0,0.4)",inputBorder:"#e8e7e4",
+  badgeBg:"#2a2a2a",badgeTxt:"#ffffff",
+};
+const DARK = {
+  zwart:"#000000",wit:"#ffffff",geel:"#d9a300",grijs:"#999999",
+  blauw:"#4dabcf",rood:"#e85d3a",groen:"#2ea852",oranje:"#e0a030",
+  lichtgrijs:"#2a2a2a",zachtgrijs:"#3a3a3a",bg:"#1a1a1a",
+  header:"#252525",headerTxt:"#ffffff",headerSub:"#ffffff66",headerDiv:"#ffffff22",
+  kaart:"#252525",kaartBorder:"#3a3a3a",panelBg:"#1e1e1e",selBg:"#222222",footerBg:"#1e1e1e",
+  txtPrimary:"#e8e8e8",txtSecondary:"#999999",
+  devSelBg:"#d9a300",devSelTxt:"#000000",devSelBorder:"#d9a300",
+  devHlBg:"#1a3a1a",devHlBorder:"#2ea852",
+  modalBg:"#2a2a2a",modalOverlay:"rgba(0,0,0,0.7)",inputBorder:"#4a4a4a",
+  badgeBg:"#d9a300",badgeTxt:"#000000",
+};
+
+const STAGES = [
+  {id:"matches",label:"Potentiële matches",short:"Match",sub:"Kans + ontwikkelaar",needsMin2:true,addLabel:"+ Match"},
+  {id:"verkennend",label:"Verkennende gesprekken",short:"Verkennend",sub:"Gesprekken lopen",needsMin2:true,addLabel:"+ Verkennend gesprek"},
+  {id:"offerte",label:"Offertetraject",short:"Offerte",sub:"Concreet verzoek",needsMin2:false,addLabel:"+ Offertetraject"},
+  {id:"actief",label:"Lopend werk",short:"Werk",sub:"In uitvoering",needsMin2:false,addLabel:null},
+];
+const STAGE_ORDER = {matches:0,verkennend:1,offerte:2,actief:3};
+const STAGE_COLORS_LIGHT = {matches:"#878786",verkennend:"#d9a300",offerte:"#006f9d",actief:"#007b2f"};
+const STAGE_COLORS_DARK = {matches:"#878786",verkennend:"#d9a300",offerte:"#4dabcf",actief:"#2ea852"};
+const STAGE_BG_LIGHT = {matches:"#f0efed",verkennend:"#fdf8ec",offerte:"#edf5f9",actief:"#edf6ef"};
+const STAGE_BG_DARK = {matches:"#2a2a2a",verkennend:"#2d2816",offerte:"#1a2830",actief:"#1a2e1e"};
+const STAGE_GATES = {
+  verkennend:{q:"Verplaatsen naar Verkennende gesprekken?",cb:"Gesprek gepland"},
+  offerte:{q:"Verplaatsen naar Offertetraject?",cb:"Gevraagd een offerte te maken"},
+  actief:{q:"Verplaatsen naar Lopend werk?",cb:"Offerte goedgekeurd"},
+};
+const FUNCTIE = ["Wonen","Kantoor","Gemengd","Bedrijven","Collectief","Retail","Zorg","Anders"];
+const uid = () => Math.random().toString(36).substring(2,9);
+const today = () => new Date().toISOString().split('T')[0];
+
+// ─── B. STATE ────────────────────────────────────
+
+const STATE = {
+  data: { devTypes:{}, kansCats:{}, devs:{}, kansen:{}, matches:{}, users:{} },
+  ui: {
+    dark: localStorage.getItem('kb_dark') === '1',
+    selectedDev: null, selectedMatch: null,
+    collapsedKansen: {},  // kansId -> true
+    dragging: null, draggingKans: null, dragOver: null, dragKansen: false,
+    modal: null, modalData: null, modalExtra: null,
+  }
+};
+
+// Data helpers
+function C() { return STATE.ui.dark ? DARK : LIGHT; }
+function stageColor(stageId) { return (STATE.ui.dark ? STAGE_COLORS_DARK : STAGE_COLORS_LIGHT)[stageId] || '#888'; }
+function stageBg(stageId) { return (STATE.ui.dark ? STAGE_BG_DARK : STAGE_BG_LIGHT)[stageId] || '#fff'; }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function mapsUrl(a) { return a ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}` : null; }
+
+function objToArr(obj) {
+  if (!obj) return [];
+  return Object.keys(obj).map(id => ({...obj[id], id}));
+}
+function sortedArr(obj) { return objToArr(obj).sort((a,b) => (a.so||0) - (b.so||0)); }
+
+function coalIds(m) {
+  const s = new Set();
+  (m.coals||[]).forEach(c => (c||[]).forEach(id => s.add(id)));
+  return s;
+}
+function indivLinks(m) {
+  const ci = coalIds(m);
+  return (m.links||[]).filter(id => !ci.has(id));
+}
+function totalLinks(m) { return indivLinks(m).length + (m.coals||[]).length; }
+function matchDevIds(m) {
+  const s = new Set(m.links||[]);
+  (m.coals||[]).forEach(c => (c||[]).forEach(id => s.add(id)));
+  return s;
+}
+function getAlertLevel(m) {
+  const stage = STAGES.find(s => s.id === m.stage);
+  const tl = totalLinks(m);
+  const minNeeded = stage && stage.needsMin2 ? 2 : 1;
+  if (tl >= minNeeded) return 'ok';
+  return tl === 0 ? 'rood' : 'oranje';
+}
+function getAlarms() {
+  const alarms = [];
+  const kansen = STATE.data.kansen;
+  objToArr(STATE.data.matches).forEach(m => {
+    const al = getAlertLevel(m);
+    if (al !== 'ok') {
+      const k = kansen[m.kid];
+      const tl = totalLinks(m);
+      const stage = STAGES.find(s => s.id === m.stage);
+      const min = stage && stage.needsMin2 ? 2 : 1;
+      alarms.push({m, k, level: al,
+        msg: `"${k?.name||'?'}" \u2014 ${tl===0?'geen match':`${tl} match`} (minstens ${min} nodig)`});
+    }
+  });
+  return alarms;
+}
+function unmatchedKansen() {
+  const ms = STATE.data.matches;
+  const matchedKids = new Set(objToArr(ms).map(m => m.kid));
+  return sortedArr(STATE.data.kansen).filter(k => !matchedKids.has(k.id));
+}
+function getSelectionName() {
+  const {selectedDev, selectedMatch} = STATE.ui;
+  if (selectedDev) { const d = STATE.data.devs[selectedDev]; return d?.name || null; }
+  if (selectedMatch) { const m = STATE.data.matches[selectedMatch]; const k = m ? STATE.data.kansen[m.kid] : null; return k?.name || null; }
+  return null;
+}
+
+// ─── C. FIREBASE ─────────────────────────────────
+
+const firebaseConfig = {
+  apiKey: "JOUW-API-KEY",
+  authDomain: "JOUW-PROJECT.firebaseapp.com",
+  databaseURL: "https://JOUW-PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "JOUW-PROJECT",
+  storageBucket: "JOUW-PROJECT.appspot.com",
+  messagingSenderId: "JOUW-SENDER-ID",
+  appId: "JOUW-APP-ID"
+};
+
+let db = null;
+
+function initFirebase() {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+}
+
+function setupListeners() {
+  const paths = ['devTypes','kansCats','devs','kansen','matches','users'];
+  paths.forEach(p => {
+    db.ref(p).on('value', snap => {
+      STATE.data[p] = snap.val() || {};
+      render();
+    });
+  });
+}
+
+function fbSet(path, data) { return db.ref(path).set(data); }
+function fbUpdate(path, data) { return db.ref(path).update(data); }
+function fbRemove(path) { return db.ref(path).remove(); }
+function fbPush(path, data) { const ref = db.ref(path).push(); ref.set(data); return ref.key; }
+function fbMulti(updates) { return db.ref().update(updates); }
+
+// ─── H. LOGIN ────────────────────────────────────
+
+async function hashPassword(pw) {
+  const enc = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+KB.handleLogin = async function() {
+  const pw = document.getElementById('login-pw').value;
+  if (!pw) return;
+  try {
+    initFirebase();
+    const snap = await db.ref('meta/passwordHash').once('value');
+    const stored = snap.val();
+    const hashed = await hashPassword(pw);
+    if (hashed === stored) {
+      localStorage.setItem('kb_session', '1');
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      applyTheme();
+      setupListeners();
+      setupEventListeners();
+    } else {
+      document.getElementById('login-error').textContent = 'Onjuist wachtwoord.';
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Verbindingsfout: ' + e.message;
+  }
+};
+
+function applyTheme() {
+  const c = C();
+  const r = document.documentElement.style;
+  Object.keys(c).forEach(k => {
+    // Vertaal camelCase keys naar CSS custom property namen
+    const prop = '--' + k.replace(/([A-Z])/g, m => m.toLowerCase());
+    r.setProperty(prop, c[k]);
+  });
+  // Specifieke overrides voor samengestelde namen
+  r.setProperty('--bg', c.bg); r.setProperty('--header', c.header);
+  r.setProperty('--headerTxt', c.headerTxt); r.setProperty('--headerSub', c.headerSub);
+  r.setProperty('--headerDiv', c.headerDiv); r.setProperty('--panelBg', c.panelBg);
+  r.setProperty('--kaart', c.kaart); r.setProperty('--kaartBorder', c.kaartBorder);
+  r.setProperty('--selBg', c.selBg); r.setProperty('--footerBg', c.footerBg);
+  r.setProperty('--txtPrimary', c.txtPrimary); r.setProperty('--txtSecondary', c.txtSecondary);
+  r.setProperty('--zachtgrijs', c.zachtgrijs); r.setProperty('--lichtgrijs', c.lichtgrijs);
+  r.setProperty('--geel', c.geel); r.setProperty('--grijs', c.grijs);
+  r.setProperty('--blauw', c.blauw); r.setProperty('--rood', c.rood);
+  r.setProperty('--groen', c.groen); r.setProperty('--oranje', c.oranje);
+  r.setProperty('--modalBg', c.modalBg); r.setProperty('--modalOverlay', c.modalOverlay);
+  r.setProperty('--inputBorder', c.inputBorder);
+  r.setProperty('--badgeBg', c.badgeBg); r.setProperty('--badgeTxt', c.badgeTxt);
+  r.setProperty('--devSelBg', c.devSelBg); r.setProperty('--devSelTxt', c.devSelTxt);
+  r.setProperty('--devSelBorder', c.devSelBorder);
+  r.setProperty('--devHlBg', c.devHlBg); r.setProperty('--devHlBorder', c.devHlBorder);
+  document.body.style.background = c.bg;
+  document.body.style.color = c.txtPrimary;
+}
+
+// ─── RENDERING (placeholder) ─────────────────────
+function render() {
+  const c = C();
+  const devs = sortedArr(STATE.data.devs);
+  const dts = sortedArr(STATE.data.devTypes);
+  const kcs = sortedArr(STATE.data.kansCats);
+  const kansen = sortedArr(STATE.data.kansen);
+  const matches = objToArr(STATE.data.matches);
+  const unmatched = unmatchedKansen();
+  const alarms = getAlarms();
+  const selName = getSelectionName();
+
+  let html = '';
+  html += renderHeader(c, devs, kansen, matches, alarms);
+  html += renderSelectionBar(c, selName, matches, unmatched);
+  html += '<div class="main">';
+  html += '<div class="left-panels">';
+  html += renderDevsPanel(c, devs, dts, matches);
+  html += renderKansenPanel(c, unmatched, kcs, matches);
+  html += '</div>';
+  html += renderPipeline(c, matches, kansen, devs, dts);
+  html += '</div>';
+  html += renderFooter(c);
+
+  document.getElementById('board-container').innerHTML = html;
+  renderModal();
+}
+
+function renderHeader(c, devs, kansen, matches, alarms) {
+  const al = alarms.length;
+  return `<div class="header">
+    <div class="header-left">
+      <div><div class="header-logo-ard">ARD</div><div class="header-logo-sub">ATELIERRUIMDENKERS</div></div>
+      <div class="header-div"></div>
+      <div><div class="header-title-label">Acquisitie</div><div class="header-title-name">De Koppelbaas</div></div>
+    </div>
+    <div class="header-right">
+      <div class="header-stat"><div class="header-stat-val">${devs.length}</div><div class="header-stat-lbl">devs</div></div>
+      <div class="header-stat"><div class="header-stat-val">${kansen.length}</div><div class="header-stat-lbl">kansen</div></div>
+      <div class="header-stat"><div class="header-stat-val">${matches.length}</div><div class="header-stat-lbl">matches</div></div>
+      <button data-noprint class="btn btn-sm" style="background:${al>0?c.rood:(STATE.ui.dark?'#444':'#000')};color:#fff;font-size:11px" data-action="showAlerts">\u26A0 ${al} alert${al!==1?'s':''}</button>
+      <button data-noprint class="btn btn-sm" style="background:${STATE.ui.dark?'#444':'#000'};color:#fff;font-size:11px" data-action="toggleDark">${STATE.ui.dark?'\u2600':'\u263E'}</button>
+      <button data-noprint class="btn btn-sm" style="background:${STATE.ui.dark?'#444':'#000'};color:#fff;font-size:11px" data-action="print">Print</button>
+    </div>
+  </div>`;
+}
+
+function renderSelectionBar(c, selName, matches, unmatched) {
+  const allMFolded = matches.length > 0 && matches.every(m => m.col);
+  const allKFolded = unmatched.length > 0 && unmatched.every(k => STATE.ui.collapsedKansen[k.id]);
+  const allFolded = allMFolded && allKFolded;
+  return `<div class="sel-bar">
+    <div style="display:flex;align-items:center;gap:10px">
+      ${selName ? `<span class="sel-bar-name"><span class="sel-bar-slash">/ </span>${esc(selName)}</span>` : ''}
+    </div>
+    <div style="display:flex;align-items:center;gap:6px" data-noprint>
+      <button class="btn btn-grey btn-sm" style="display:flex;align-items:center;gap:4px" data-action="collapseAll" data-val="${allFolded?'0':'1'}">
+        <span style="font-size:13px">${allFolded?'\u25B8':'\u25BE'}</span> ${allFolded?'Alles uitklappen':'Alles inklappen'}
+      </button>
+      ${selName ? `<button class="btn btn-grey btn-sm" data-action="clearSelection">\u2715 Reset</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderDevsPanel(c, devs, dts, matches) {
+  const {selectedDev, selectedMatch} = STATE.ui;
+  // Bepaal highlight-status per dev
+  let hlMap = null;
+  if (selectedMatch) {
+    const m = STATE.data.matches[selectedMatch];
+    if (m) hlMap = matchDevIds(m);
+  }
+
+  let html = '<div class="panel">';
+  html += '<div class="panel-header"><span class="panel-title">Ontwikkelaars</span>';
+  html += '<button data-noprint class="btn btn-black btn-sm" data-action="addDev">+ Nieuw</button></div>';
+  html += '<div class="panel-sub">Klik om koppelingen te zien.</div>';
+
+  // Per type-groep
+  dts.forEach(type => {
+    const td = devs.filter(d => d.tid === type.id).sort((a,b) => (a.so||0) - (b.so||0));
+    html += '<div style="margin-bottom:16px">';
+    html += `<div class="dev-type-header">
+      <span class="badge badge-lg">${esc(type.short||'?')}</span>
+      <span style="font-size:14px;font-weight:600;flex:1;color:${c.txtPrimary}">${esc(type.label||'Naamloos')}</span>
+      <button data-noprint class="btn-icon" data-action="editDevType" data-id="${type.id}">\u270E</button>
+    </div>`;
+    td.forEach(dev => {
+      const isSel = selectedDev === dev.id;
+      const cnt = objToArr(STATE.data.matches).filter(m => matchDevIds(m).has(dev.id)).length;
+      // Highlight logica
+      let bg = 'transparent', col = c.txtPrimary, op = '1', bl = '3px solid transparent', shadow = 'none';
+      if (cnt === 0 && !isSel && !(hlMap && hlMap.has(dev.id))) bl = `3px solid ${c.rood}`;
+      if (isSel) { bg = c.devSelBg; col = c.devSelTxt; bl = `3px solid ${c.devSelBorder}`; }
+      else if (hlMap && hlMap.has(dev.id)) { bg = c.devHlBg; bl = `3px solid ${c.devHlBorder}`; shadow = `0 0 0 1px ${c.devHlBorder}22`; }
+      else if (hlMap && !hlMap.has(dev.id)) op = '0.15';
+      else if (selectedDev && selectedDev !== dev.id) {
+        // Als een andere dev geselecteerd is, dim deze niet (alleen bij match-selectie)
+      }
+
+      const cntColor = isSel ? '#999' : (cnt===0 ? c.rood : c.txtPrimary);
+      const cntBg = isSel ? 'transparent' : (cnt===0 ? c.rood+'10' : c.lichtgrijs);
+      html += `<div class="dev-item" data-action="selectDev" data-id="${dev.id}"
+        style="background:${bg};color:${col};border-left:${bl};opacity:${op};box-shadow:${shadow}">
+        <div>
+          <div style="font-weight:400;font-size:13px;color:${col}">${esc(dev.name||'Naamloos')}</div>
+          ${dev.schaal ? `<div style="font-size:10px;color:${isSel?'#999':c.txtSecondary};font-weight:300">${esc(dev.schaal)}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-size:11px;font-weight:500;color:${cntColor};background:${cntBg};padding:1px 5px;border-radius:3px">${cnt}\u00D7</span>
+          <button data-noprint class="btn-xs" style="background:${isSel?c.devSelBg+'88':c.lichtgrijs};border:none;cursor:pointer;font-size:12px;color:${isSel?c.devSelTxt:c.grijs};border-radius:3px;font-family:inherit" data-action="editDev" data-id="${dev.id}">\u270E</button>
+        </div>
+      </div>`;
+    });
+    if (td.length === 0) html += '<div style="margin-left:28px;font-size:10px;color:'+c.zachtgrijs+';font-style:italic">Geen</div>';
+    html += '</div>';
+  });
+
+  // Geen categorie
+  const uncatDevs = devs.filter(d => !dts.find(t => t.id === d.tid));
+  if (uncatDevs.length > 0) {
+    html += '<div style="margin-bottom:14px"><div style="font-size:10px;color:'+c.grijs+';font-style:italic;margin-bottom:4px">Geen categorie</div>';
+    uncatDevs.forEach(dev => {
+      html += `<div class="dev-item" style="border-left:3px solid ${c.rood};font-size:12px" data-action="selectDev" data-id="${dev.id}">
+        <span>${esc(dev.name||'Naamloos')}</span>
+        <button data-noprint class="btn-xs" style="background:${c.lichtgrijs};border:none;cursor:pointer;font-size:11px;color:${c.grijs};border-radius:3px;font-family:inherit" data-action="editDev" data-id="${dev.id}">\u270E</button>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += '<button data-noprint class="btn btn-grey btn-sm btn-full" data-action="addDevType">+ Categorie</button>';
+  html += '</div>';
+  return html;
+}
+
+function renderKansenPanel(c, unmatched, kcs, matches) {
+  const {dragKansen} = STATE.ui;
+  const allKFolded = unmatched.length > 0 && unmatched.every(k => STATE.ui.collapsedKansen[k.id]);
+
+  let html = `<div class="panel" id="kansen-panel">`;
+  html += '<div class="panel-header"><div style="display:flex;align-items:center;gap:6px">';
+  html += '<span class="panel-title">Kansen</span>';
+  if (unmatched.length > 0) {
+    html += `<button data-noprint class="btn-icon" style="font-size:14px;line-height:1" data-action="collapseAllKansen">${allKFolded?'\u25B8':'\u25BE'}</button>`;
+  }
+  html += '</div>';
+  html += '<button data-noprint class="btn btn-black btn-sm" data-action="addKans">+ Nieuw</button></div>';
+  html += `<div class="panel-sub">${dragKansen ? '<span style="color:'+c.geel+';font-weight:500">Loslaten = match ontkoppelen</span>' : 'Koppel aan ontwikkelaar \u2192 match.'}</div>`;
+
+  if (dragKansen) {
+    html += '<div class="drop-zone-active">Hier loslaten</div>';
+  }
+
+  // Per categorie
+  kcs.forEach(cat => {
+    const ck = unmatched.filter(k => k.cid === cat.id).sort((a,b) => (a.so||0) - (b.so||0));
+    const allCatFolded = ck.length > 0 && ck.every(k => STATE.ui.collapsedKansen[k.id]);
+    html += '<div style="margin-bottom:16px">';
+    html += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">`;
+    if (ck.length > 0) {
+      html += `<span style="font-size:14px;color:${c.grijs};cursor:pointer" data-action="collapseCatKansen" data-id="${cat.id}">${allCatFolded?'\u25B8':'\u25BE'}</span>`;
+    }
+    html += `<span style="font-size:14px;font-weight:600;flex:1;color:${c.txtPrimary}">${esc(cat.label||'Naamloos')}</span>`;
+    html += `<button data-noprint class="btn-icon" data-action="editKansCat" data-id="${cat.id}">\u270E</button>`;
+    html += '</div>';
+
+    ck.forEach(kans => {
+      const isKC = STATE.ui.collapsedKansen[kans.id];
+      const mp = mapsUrl(kans.adres);
+      html += `<div class="kans-card" draggable="true" data-drag-type="kans" data-drag-id="${kans.id}" style="padding:${isKC?'6px 10px':'8px 10px'}">`;
+      html += `<div style="display:flex;align-items:flex-start;gap:5px;cursor:pointer" data-action="toggleKansCollapse" data-id="${kans.id}">`;
+      html += `<span style="font-size:13px;color:${c.grijs};flex-shrink:0;line-height:1.3">${isKC?'\u25B8':'\u25BE'}</span>`;
+      html += `<div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12px;line-height:1.3;color:${c.txtPrimary}">${esc(kans.name||'Naamloos')}</div></div>`;
+      html += `<div style="display:flex;gap:3px;align-items:center;flex-shrink:0" data-noprint>`;
+      html += `<button class="btn btn-match btn-xs" data-action="matchKans" data-id="${kans.id}">Match \u2192</button>`;
+      html += `<button class="btn-xs" style="background:${c.lichtgrijs};border:none;border-radius:3px;cursor:pointer;color:${c.grijs};font-family:inherit" data-action="editKans" data-id="${kans.id}">\u270E</button>`;
+      html += '</div></div>';
+
+      if (!isKC) {
+        html += `<div style="font-size:10px;color:${c.txtSecondary};font-weight:300;margin-top:2px">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
+        if (kans.adres) {
+          html += `<div style="font-size:10px;margin-top:1px;font-weight:300">`;
+          if (mp) html += `<a href="${mp}" target="_blank" rel="noopener noreferrer" style="color:${c.blauw};text-decoration:none">\uD83D\uDCCD ${esc(kans.adres)}</a>`;
+          else html += `<span style="color:${c.txtSecondary}">\uD83D\uDCCD ${esc(kans.adres)}</span>`;
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+    });
+
+    if (ck.length === 0) html += `<div style="font-size:10px;color:${c.zachtgrijs};font-style:italic">Geen kansen</div>`;
+    html += '</div>';
+  });
+
+  // Geen categorie
+  const uncatK = unmatched.filter(k => !kcs.find(cat => cat.id === k.cid));
+  if (uncatK.length > 0) {
+    html += `<div style="margin-bottom:14px"><div style="font-size:12px;color:${c.grijs};font-style:italic;margin-bottom:4px">Geen categorie</div>`;
+    uncatK.forEach(kans => {
+      html += `<div class="kans-card" draggable="true" data-drag-type="kans" data-drag-id="${kans.id}">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-weight:500;font-size:12px">${esc(kans.name||'Naamloos')}</span>
+          <div style="display:flex;gap:3px" data-noprint>
+            <button class="btn btn-match btn-xs" data-action="matchKans" data-id="${kans.id}">Match \u2192</button>
+            <button class="btn-xs" style="background:${c.lichtgrijs};border:none;border-radius:3px;cursor:pointer;color:${c.grijs};font-family:inherit" data-action="editKans" data-id="${kans.id}">\u270E</button>
+          </div>
+        </div>
+        <div style="font-size:10px;color:${c.grijs};font-weight:300">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += '<button data-noprint class="btn btn-grey btn-sm btn-full" data-action="addKansCat">+ Categorie</button>';
+  html += '</div>';
+  return html;
+}
+
+function renderPipeline(c, matches, kansen, devs, dts) {
+  const {selectedDev, selectedMatch, dragOver} = STATE.ui;
+  let html = '<div class="pipeline">';
+
+  STAGES.forEach(stage => {
+    const sc = stageColor(stage.id);
+    const sm = matches.filter(m => m.stage === stage.id).sort((a,b) => (a.so||0) - (b.so||0));
+    const isDT = dragOver === stage.id;
+    const allC = sm.length > 0 && sm.every(m => m.col);
+
+    html += `<div class="pipe-col" data-stage="${stage.id}" style="background:${isDT ? sc+'12' : 'transparent'}">`;
+
+    // Kolomheader
+    html += `<div class="pipe-col-header" style="border-bottom:3px solid ${sc}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:15px;font-weight:600;color:${sc};line-height:1.2">${esc(stage.label)}</span>
+            ${sm.length > 0 ? `<button data-noprint class="btn-icon" style="font-size:14px;line-height:1;flex-shrink:0" data-action="collapseCol" data-id="${stage.id}">${allC?'\u25B8':'\u25BE'}</button>` : ''}
+          </div>
+          <div style="font-size:10px;color:${c.grijs};margin-top:3px;font-weight:300">${esc(stage.sub)}</div>
+        </div>
+        <div style="font-size:24px;font-weight:300;color:${sc};flex-shrink:0">${sm.length}</div>
+      </div>
+      ${stage.needsMin2 ? `<div style="font-size:8px;color:${c.grijs};font-weight:300;font-style:italic">Min. 2 koppelingen</div>` : `<div style="font-size:8px;color:${c.grijs};font-weight:300;font-style:italic">Min. 1 koppeling</div>`}
+    </div>`;
+
+    // Kaarten
+    html += '<div class="pipe-col-body">';
+    sm.forEach(match => {
+      html += renderMatchCard(c, match, stage, devs, dts);
+    });
+
+    // Toevoeg-knop
+    if (stage.addLabel) {
+      html += `<button data-noprint class="btn-add-col" data-action="addMatch" data-stage="${stage.id}">${esc(stage.addLabel)}</button>`;
+    }
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderMatchCard(c, match, stage, devs, dts) {
+  const kans = STATE.data.kansen[match.kid];
+  if (!kans) return '';
+  const sc = stageColor(stage.id);
+  const sb = stageBg(stage.id);
+  const tl = totalLinks(match);
+  const il = indivLinks(match);
+  const iDevs = devs.filter(d => il.includes(d.id));
+  const al = getAlertLevel(match);
+  const isC = match.col;
+  const isSel = STATE.ui.selectedMatch === match.id;
+  const mp = mapsUrl(kans.adres);
+
+  // Highlight logica
+  let op = '1';
+  if (STATE.ui.selectedDev) {
+    const linked = matchDevIds(match).has(STATE.ui.selectedDev);
+    if (!linked) op = '0.15';
+  }
+
+  const bc = al==='rood' ? c.rood : al==='oranje' ? c.oranje : c.zachtgrijs;
+  const bgc = al==='rood' ? c.rood+'18' : al==='oranje' ? c.oranje+'18' : c.kaart;
+  const shadow = isSel ? `0 0 0 2px ${sc},0 2px 12px rgba(0,0,0,0.06)` : '0 1px 2px rgba(0,0,0,0.02)';
+
+  let html = `<div class="match-card" draggable="true" data-drag-type="match" data-drag-id="${match.id}" data-action="selectMatch" data-id="${match.id}"
+    style="padding:${isC?'8px 12px':'14px'};background:${bgc};border-left:5px solid ${bc};opacity:${op};box-shadow:${shadow}">`;
+
+  // Titel-rij (altijd zichtbaar)
+  html += `<div style="display:flex;align-items:flex-start;gap:6px;cursor:pointer" data-action="toggleMatchCollapse" data-id="${match.id}">`;
+  html += `<span style="font-size:14px;color:${c.grijs};line-height:1.4;flex-shrink:0">${isC?'\u25B8':'\u25BE'}</span>`;
+  html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
+  if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0;margin-top:3px">(${tl})</span>`;
+  html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33;margin-top:1px">${esc(stage.short)}</span>`;
+  html += '</div>';
+
+  // Uitgeklapte inhoud
+  if (!isC) {
+    html += `<div style="font-size:11px;color:${c.grijs};margin-top:4px;font-weight:300">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
+    if (kans.adres) {
+      html += '<div style="font-size:11px;margin-top:2px;font-weight:300">';
+      if (mp) html += `<a href="${mp}" target="_blank" rel="noopener noreferrer" style="color:${c.blauw};text-decoration:none">\uD83D\uDCCD ${esc(kans.adres)}</a>`;
+      else html += `<span style="color:${c.grijs}">\uD83D\uDCCD ${esc(kans.adres)}</span>`;
+      html += '</div>';
+    }
+    if (kans.contact) html += `<div style="font-size:11px;color:${c.grijs};margin-top:1px;font-weight:300">\uD83D\uDC64 ${esc(kans.contact)}</div>`;
+    if (match.notitie) {
+      const nt = match.notitie.length > 50 ? match.notitie.substring(0,50)+'\u2026' : match.notitie;
+      html += `<div style="font-size:11px;color:${c.grijs};margin-top:2px;font-style:italic;font-weight:300">${esc(nt)}</div>`;
+    }
+
+    // Koppelingen-sectie
+    html += `<div style="border-top:1px solid ${c.zachtgrijs};padding-top:8px;margin-top:6px">`;
+    // Status-tekst
+    const minReq = stage.needsMin2 ? 2 : 1;
+    let statusTxt, statusCol;
+    if (stage.needsMin2) {
+      if (tl===0) { statusTxt = '\u26A0 Geen match'; statusCol = c.rood; }
+      else if (tl===1) { statusTxt = '\u26A0 1 match'; statusCol = c.oranje; }
+      else { statusTxt = '\u2713 '+tl+' matches'; statusCol = c.txtPrimary; }
+    } else {
+      statusTxt = tl + ' gekoppeld'; statusCol = c.txtPrimary;
+    }
+    html += `<div style="margin-bottom:5px"><span style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;color:${statusCol}">${statusTxt}</span></div>`;
+
+    // Individuele links
+    if (iDevs.length > 0) {
+      html += '<div style="display:flex;flex-direction:column;gap:3px;margin-bottom:3px">';
+      iDevs.forEach(d => {
+        const dt = dts.find(t => t.id === d.tid);
+        html += `<div style="display:flex;align-items:center;gap:5px;font-size:11px">
+          <span class="badge badge-sm">${esc(dt?.short||'?')}</span><span>${esc(d.name)}</span>
+          <span data-noprint style="cursor:pointer;opacity:0.3;font-size:10px" data-action="unlinkDev" data-mid="${match.id}" data-did="${d.id}">\u2715</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Coalities
+    (match.coals||[]).forEach((coal, ci) => {
+      const members = (coal||[]).map(id => devs.find(d => d.id === id)).filter(Boolean);
+      html += `<div class="coalition" data-action="editCoalition" data-mid="${match.id}" data-cidx="${ci}">`;
+      html += `<div style="font-weight:500;color:${c.geel};margin-bottom:4px;display:flex;justify-content:space-between">`;
+      html += `<span>Coalitie <span style="font-size:8px;font-weight:300;color:${c.grijs}">(klik om te bewerken)</span></span>`;
+      html += `<span data-noprint style="cursor:pointer;color:${c.grijs};font-size:11px" data-action="deleteCoalition" data-mid="${match.id}" data-cidx="${ci}">\u2715</span>`;
+      html += '</div><div style="display:flex;flex-direction:column;gap:3px">';
+      members.forEach(m => {
+        const dt = dts.find(t => t.id === m.tid);
+        html += `<div style="display:flex;align-items:center;gap:4px"><span class="badge badge-sm">${esc(dt?.short||'?')}</span><span>${esc(m.name)}</span></div>`;
+      });
+      html += '</div></div>';
+    });
+
+    // Actieknoppen
+    html += `<div style="border-top:1px solid ${c.zachtgrijs};margin-top:6px;padding-top:6px;display:flex;gap:5px" data-noprint>`;
+    html += `<button style="font-size:11px;background:${c.lichtgrijs};border:none;border-radius:3px;padding:3px 8px;cursor:pointer;color:${c.txtPrimary};font-family:inherit" data-action="addCoalition" data-mid="${match.id}">+ coalitie</button>`;
+    html += `<button style="font-size:11px;background:${c.lichtgrijs};border:none;border-radius:3px;padding:3px 8px;cursor:pointer;color:${c.txtPrimary};font-family:inherit" data-action="editMatch" data-id="${match.id}">\u270E bewerk</button>`;
+    html += '</div>';
+
+    html += '</div>'; // einde koppelingen-sectie
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function renderFooter(c) {
+  return `<div class="footer">
+    <span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
+    <span>Willem Buytewechstraat 45, Rotterdam</span>
+  </div>`;
+}
+
+// ─── MODALS (placeholder) ────────────────────────
+function renderModal() {
+  const mc = document.getElementById('modal-container');
+  const {modal, modalData, modalExtra} = STATE.ui;
+  if (!modal) { mc.innerHTML = ''; return; }
+  const c = C();
+
+  let html = `<div class="modal-overlay" data-action="closeModal">`;
+  let w = 480;
+  let title = '';
+  let body = '';
+
+  switch(modal) {
+    case 'editDev': { w=400; title='Ontwikkelaar'; body = renderEditDevModal(c); break; }
+    case 'editKans': { w=460; title='Kans'; body = renderEditKansModal(c); break; }
+    case 'editMatch': { w=480; title='Match bewerken'; body = renderEditMatchModal(c); break; }
+    case 'pickKans': { w=440; title=modalExtra?.title||'Kans kiezen'; body = renderPickKansModal(c); break; }
+    case 'pickDevs': { w=440; title=`Match: ${esc(modalExtra?.kansName||'')}`; body = renderPickDevsModal(c); break; }
+    case 'coalition': { w=420; title=modalExtra?.editing?'Coalitie bewerken':'Coalitie vormen'; body = renderCoalitionModal(c); break; }
+    case 'addDevType': { w=360; title='Categorie toevoegen'; body = renderAddDevTypeModal(c); break; }
+    case 'editDevType': { w=360; title='Categorie bewerken'; body = renderEditDevTypeModal(c); break; }
+    case 'addKansCat': { w=360; title='Categorie toevoegen'; body = renderAddKansCatModal(c); break; }
+    case 'editKansCat': { w=360; title='Categorie bewerken'; body = renderEditKansCatModal(c); break; }
+    case 'confirmDelete': { w=380; title='Bevestig verwijderen'; body = renderConfirmDeleteModal(c); break; }
+    case 'alerts': { w=500; title=`Alerts (${getAlarms().length})`; body = renderAlertsModal(c); break; }
+    case 'stageGate': { w=400; title=modalExtra?.q||'Bevestigen'; body = renderStageGateModal(c); break; }
+  }
+
+  html += `<div class="modal" style="max-width:${w}px" onclick="event.stopPropagation()">`;
+  html += `<div class="modal-head"><h3>${title}</h3><button class="btn-icon" style="font-size:18px" data-action="closeModal">\u2715</button></div>`;
+  html += `<div class="modal-body">${body}</div>`;
+  html += '</div></div>';
+  mc.innerHTML = html;
+}
+
+function renderEditDevModal(c) {
+  const d = STATE.ui.modalData; if (!d) return '';
+  const dts = sortedArr(STATE.data.devTypes);
+  return `
+    <div class="field"><label>Naam</label><input value="${esc(d.name||'')}" oninput="KB.mf('name',this.value)"></div>
+    <div class="field"><label>Type</label><select onchange="KB.mf('tid',this.value)"><option value="">— Geen —</option>
+      ${dts.map(t => `<option value="${t.id}" ${d.tid===t.id?'selected':''}>${esc(t.label)}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>Schaal</label><input value="${esc(d.schaal||'')}" oninput="KB.mf('schaal',this.value)"></div>
+    <div class="field"><label>Contact</label><input value="${esc(d.contact||'')}" oninput="KB.mf('contact',this.value)"></div>
+    <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(d.notitie||'')}</textarea></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteDev" data-id="${d.id}">Verwijder</button>
+      <button class="btn btn-black" data-action="saveDev">Klaar</button>
+    </div>`;
+}
+
+function renderEditKansModal(c) {
+  const k = STATE.ui.modalData; if (!k) return '';
+  const kcs = sortedArr(STATE.data.kansCats);
+  return `
+    <div class="field"><label>Naam</label><input value="${esc(k.name||'')}" oninput="KB.mf('name',this.value)"></div>
+    <div class="field"><label>Gebied</label><select onchange="KB.mf('cid',this.value)"><option value="">— Geen —</option>
+      ${kcs.map(cat => `<option value="${cat.id}" ${k.cid===cat.id?'selected':''}>${esc(cat.label)}</option>`).join('')}
+    </select></div>
+    <div class="field"><label>Adres</label><input value="${esc(k.adres||'')}" oninput="KB.mf('adres',this.value)"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Omvang (m\u00B2)</label><input value="${esc(k.omvang||'')}" oninput="KB.mf('omvang',this.value)"></div>
+      <div class="field"><label>Functie</label><select onchange="KB.mf('type',this.value)">
+        ${FUNCTIE.map(f => `<option ${k.type===f?'selected':''}>${f}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="field"><label>Contact</label><input value="${esc(k.contact||'')}" oninput="KB.mf('contact',this.value)"></div>
+    <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(k.notitie||'')}</textarea></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteKans" data-id="${k.id}">Verwijder</button>
+      <button class="btn btn-black" data-action="saveKans">Klaar</button>
+    </div>`;
+}
+
+function renderEditMatchModal(c) {
+  const md = STATE.ui.modalData; if (!md) return '';
+  const kans = STATE.data.kansen[md.kid];
+  const devs = sortedArr(STATE.data.devs);
+  const dts = sortedArr(STATE.data.devTypes);
+  const ci = coalIds(md);
+  return `
+    <div style="padding:10px;background:${c.lichtgrijs};border-radius:3px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:10px;color:${c.grijs};text-transform:uppercase;letter-spacing:1px;font-weight:500;margin-bottom:3px">Kans</div>
+        <div style="font-size:14px;font-weight:500">${esc(kans?.name||'?')}</div>
+        <div style="font-size:11px;color:${c.grijs};font-weight:300">${kans?.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans?.type||'')}</div>
+      </div>
+      <button data-noprint class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="editKansFromMatch" data-id="${md.kid}">Bewerk kans \u2192</button>
+    </div>
+    <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
+    <div class="field"><label>Fase</label><select onchange="KB.mfStage(this.value)">
+      ${STAGES.map(s => `<option value="${s.id}" ${md.stage===s.id?'selected':''}>${esc(s.label)}</option>`).join('')}
+    </select></div>
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-top:14px">
+      <div class="field"><label>Ontwikkelaars</label>
+        <div style="max-height:180px;overflow-y:auto;border:1px solid ${c.zachtgrijs};border-radius:3px;padding:6px">
+          ${devs.map(dev => {
+            const linked = (md.links||[]).includes(dev.id);
+            const inC = ci.has(dev.id);
+            const dt = dts.find(t => t.id === dev.tid);
+            return `<div style="display:flex;align-items:center;gap:7px;padding:5px;cursor:${inC?'default':'pointer'};border-radius:3px;font-size:13px;background:${linked?c.badgeBg+'10':inC?c.geel+'08':'transparent'};opacity:${inC?'0.5':'1'}"
+              ${inC?'':`data-action="toggleMatchDev" data-did="${dev.id}"`}>
+              <div class="cb ${linked||inC?'checked':''}" style="border-color:${linked?c.badgeBg:inC?c.geel:c.zachtgrijs};background:${linked?c.badgeBg:inC?c.geel:'transparent'}">${(linked||inC)?'\u2713':''}</div>
+              <span class="badge badge-sm">${esc(dt?.short||'?')}</span>
+              <span style="font-weight:${linked?'500':'300'}">${esc(dev.name)}</span>
+              ${inC?`<span style="font-size:10px;color:${c.geel};margin-left:auto">coalitie</span>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteMatch" data-id="${md.id}">Verwijder</button>
+      <button class="btn btn-black" data-action="saveMatch">Klaar</button>
+    </div>`;
+}
+
+function renderPickKansModal(c) {
+  const unm = unmatchedKansen();
+  if (unm.length === 0) return '<p style="font-size:12px;color:'+c.grijs+';font-weight:300">Geen ongematchte kansen beschikbaar.</p>';
+  let html = `<p style="font-size:12px;color:${c.grijs};margin-bottom:10px;font-weight:300">Kies een kans om een match te maken.</p>`;
+  html += '<div style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">';
+  unm.forEach(k => {
+    html += `<div style="padding:8px 10px;border-radius:3px;border:1px solid ${c.kaartBorder};cursor:pointer;background:${c.kaart}" data-action="pickKans" data-id="${k.id}">
+      <div style="font-weight:500;font-size:13px">${esc(k.name||'Naamloos')}</div>
+      <div style="font-size:10px;color:${c.grijs};font-weight:300">${k.omvang ? esc(k.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(k.type||'')}</div>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderPickDevsModal(c) {
+  const devs = sortedArr(STATE.data.devs);
+  const dts = sortedArr(STATE.data.devTypes);
+  const sel = STATE.ui.modalData?.selectedDevs || [];
+  let html = `<p style="font-size:12px;color:${c.grijs};margin-bottom:10px;font-weight:300">Koppel minimaal 1 ontwikkelaar.</p>`;
+  html += `<div style="max-height:250px;overflow-y:auto;border:1px solid ${c.zachtgrijs};border-radius:3px;padding:6px;margin-bottom:14px">`;
+  devs.forEach(d => {
+    const ch = sel.includes(d.id);
+    const dt = dts.find(t => t.id === d.tid);
+    html += `<div style="display:flex;align-items:center;gap:7px;padding:6px;cursor:pointer;border-radius:3px;font-size:13px;background:${ch?c.geel+'15':'transparent'}" data-action="togglePickDev" data-id="${d.id}">
+      <div class="cb ${ch?'checked':''}">${ch?'\u2713':''}</div>
+      <span class="badge badge-sm" style="width:20px;height:20px;font-size:9px">${esc(dt?.short||'?')}</span>
+      <span style="font-weight:${ch?'500':'300'}">${esc(d.name)}</span>
+      <span style="font-size:10px;color:${c.grijs};margin-left:auto">${esc(d.schaal||'')}</span>
+    </div>`;
+  });
+  html += '</div>';
+  const canSave = sel.length >= 1;
+  html += `<div style="display:flex;justify-content:flex-end;gap:6px">
+    <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+    <button class="btn" style="background:${canSave?c.geel:c.zachtgrijs};color:${canSave?'#000':c.grijs};cursor:${canSave?'pointer':'not-allowed'}" ${canSave?'data-action="confirmMatch"':''}>Match (${sel.length})</button>
+  </div>`;
+  return html;
+}
+
+function renderCoalitionModal(c) {
+  const devs = sortedArr(STATE.data.devs);
+  const dts = sortedArr(STATE.data.devTypes);
+  const sel = STATE.ui.modalData?.selectedDevs || [];
+  let html = `<div style="max-height:250px;overflow-y:auto;border:1px solid ${c.zachtgrijs};border-radius:3px;padding:6px;margin-bottom:14px">`;
+  devs.forEach(d => {
+    const ch = sel.includes(d.id);
+    const dt = dts.find(t => t.id === d.tid);
+    html += `<div style="display:flex;align-items:center;gap:7px;padding:6px;cursor:pointer;border-radius:3px;font-size:13px;background:${ch?c.geel+'15':'transparent'}" data-action="toggleCoalDev" data-id="${d.id}">
+      <div class="cb ${ch?'checked':''}">${ch?'\u2713':''}</div>
+      <span class="badge badge-sm" style="width:20px;height:20px;font-size:9px">${esc(dt?.short||'?')}</span>
+      <span style="font-weight:${ch?'500':'300'}">${esc(d.name)}</span>
+    </div>`;
+  });
+  html += '</div>';
+  const canSave = sel.length >= 2;
+  const label = STATE.ui.modalExtra?.editing ? 'Opslaan' : 'Coalitie';
+  html += `<div style="display:flex;justify-content:flex-end;gap:6px">
+    <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+    <button class="btn" style="background:${canSave?c.geel:c.zachtgrijs};color:${canSave?'#000':c.grijs};cursor:${canSave?'pointer':'not-allowed'}" ${canSave?'data-action="saveCoalition"':''}>${label} (${sel.length})</button>
+  </div>`;
+  return html;
+}
+
+function renderAddDevTypeModal(c) {
+  const d = STATE.ui.modalData || {};
+  const canSave = !!(d.label);
+  return `
+    <div class="field"><label>Label</label><input value="${esc(d.label||'')}" oninput="KB.mf('label',this.value)" placeholder="Bijv. Puur sang"></div>
+    <div class="field"><label>Afkorting (2)</label><input value="${esc(d.short||'')}" oninput="KB.mf('short',this.value.toUpperCase())" maxlength="2" placeholder="PS"></div>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:14px">
+      <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+      <button class="btn" style="background:${canSave?'#000':c.zachtgrijs};color:${canSave?'#fff':c.grijs};cursor:${canSave?'pointer':'not-allowed'}" ${canSave?'data-action="saveNewDevType"':''}>Klaar</button>
+    </div>`;
+}
+function renderEditDevTypeModal(c) {
+  const d = STATE.ui.modalData || {};
+  return `
+    <div class="field"><label>Label</label><input value="${esc(d.label||'')}" oninput="KB.mf('label',this.value)"></div>
+    <div class="field"><label>Afkorting (2)</label><input value="${esc(d.short||'')}" oninput="KB.mf('short',this.value.toUpperCase())" maxlength="2"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteDevType" data-id="${d.id}">Verwijder</button>
+      <button class="btn btn-black" data-action="saveDevType">Klaar</button>
+    </div>`;
+}
+function renderAddKansCatModal(c) {
+  const d = STATE.ui.modalData || {};
+  const canSave = !!(d.label);
+  return `
+    <div class="field"><label>Naam</label><input value="${esc(d.label||'')}" oninput="KB.mf('label',this.value)" placeholder="Bijv. Rotterdam"></div>
+    <div style="display:flex;justify-content:flex-end;gap:6px;margin-top:14px">
+      <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+      <button class="btn" style="background:${canSave?'#000':c.zachtgrijs};color:${canSave?'#fff':c.grijs};cursor:${canSave?'pointer':'not-allowed'}" ${canSave?'data-action="saveNewKansCat"':''}>Klaar</button>
+    </div>`;
+}
+function renderEditKansCatModal(c) {
+  const d = STATE.ui.modalData || {};
+  return `
+    <div class="field"><label>Naam</label><input value="${esc(d.label||'')}" oninput="KB.mf('label',this.value)"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteKansCat" data-id="${d.id}">Verwijder</button>
+      <button class="btn btn-black" data-action="saveKansCat">Klaar</button>
+    </div>`;
+}
+
+function renderConfirmDeleteModal(c) {
+  const ex = STATE.ui.modalExtra || {};
+  let msg = '';
+  switch(ex.type) {
+    case 'dev': msg = `"${esc(ex.name)}" verwijderen?`; break;
+    case 'kans': msg = `"${esc(ex.name)}" verwijderen? Matches worden ook verwijderd.`; break;
+    case 'match': msg = 'Match verwijderen?'; break;
+    case 'coalition': msg = 'Coalitie verwijderen?'; break;
+    case 'devType': msg = 'Type verwijderen? Ontwikkelaars \u2192 "geen categorie".'; break;
+    case 'kansCat': msg = 'Gebied verwijderen? Kansen \u2192 "geen categorie".'; break;
+  }
+  return `<p style="font-size:13px;font-weight:300;line-height:1.5;margin-bottom:14px">${msg}</p>
+    <div style="display:flex;justify-content:flex-end;gap:6px">
+      <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+      <button class="btn" style="background:${c.rood};color:#fff" data-action="executeDelete">Verwijder</button>
+    </div>`;
+}
+
+function renderAlertsModal(c) {
+  const alarms = getAlarms();
+  if (alarms.length === 0) {
+    return `<div style="text-align:center;padding:20px;color:${c.groen}"><div style="font-size:28px;margin-bottom:6px">\u2713</div><div style="font-size:14px;font-weight:500">Alles gekoppeld</div></div>`;
+  }
+  let html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  alarms.forEach(a => {
+    const col = a.level==='rood' ? c.rood : c.oranje;
+    html += `<div style="padding:10px 12px;border-radius:4px;font-size:12px;font-weight:300;background:${col}06;border:1px solid ${col}22;display:flex;align-items:center;gap:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+      <span style="flex:1">${esc(a.msg)}</span>
+      <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="alertGoToMatch" data-id="${a.m.id}">\u2192</button>
+    </div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+function renderStageGateModal(c) {
+  const ex = STATE.ui.modalExtra || {};
+  const checked = STATE.ui.modalData?.checked;
+  return `<p style="font-size:13px;font-weight:300;margin-bottom:14px">${esc(ex.q||'')}</p>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;cursor:pointer" data-action="toggleGateCheck">
+      <div class="cb ${checked?'checked':''}">${checked?'\u2713':''}</div>
+      <span style="font-size:13px">${esc(ex.cb||'')}</span>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:6px">
+      <button class="btn btn-grey" data-action="closeModal">Annuleer</button>
+      <button class="btn" style="background:${checked?'#000':c.zachtgrijs};color:${checked?'#fff':c.grijs};cursor:${checked?'pointer':'not-allowed'}" ${checked?'data-action="confirmStageGate"':''}>Bevestig</button>
+    </div>`;
+}
+
+// Modal field helper — update modalData zonder re-render tenzij nodig
+KB.mf = function(field, value) {
+  if (STATE.ui.modalData) {
+    STATE.ui.modalData[field] = value;
+    // Herrender modal alleen als het een veld is dat de knop-status beïnvloedt
+    if (['label','short','checked'].includes(field)) renderModal();
+  }
+};
+KB.mfStage = function(newStage) {
+  const md = STATE.ui.modalData;
+  if (!md) return;
+  const oldIdx = STAGE_ORDER[md.stage] || 0;
+  const newIdx = STAGE_ORDER[newStage] || 0;
+  if (newIdx > oldIdx && STAGE_GATES[newStage]) {
+    // Stage gate nodig
+    STATE.ui.modalExtra = { pendingStage: newStage, returnModal: 'editMatch', matchId: md.id, ...STAGE_GATES[newStage] };
+    STATE.ui.modalData = { checked: false, matchId: md.id };
+    STATE.ui.modal = 'stageGate';
+    renderModal();
+  } else {
+    md.stage = newStage;
+    renderModal();
+  }
+};
+
+// ─── EVENTS (placeholder) ────────────────────────
+function setupEventListeners() {
+  // ─── Click delegation ───
+  document.body.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    const id = el.dataset.id;
+    e.stopPropagation();
+
+    switch(action) {
+      // Selectie
+      case 'selectDev':
+        STATE.ui.selectedMatch = null;
+        STATE.ui.selectedDev = STATE.ui.selectedDev === id ? null : id;
+        render(); break;
+      case 'selectMatch':
+        if (e.target.closest('[data-action="toggleMatchCollapse"]') || e.target.closest('a') || e.target.closest('[data-action="unlinkDev"]') || e.target.closest('[data-action="editMatch"]') || e.target.closest('[data-action="addCoalition"]') || e.target.closest('[data-action="editCoalition"]') || e.target.closest('[data-action="deleteCoalition"]')) return;
+        STATE.ui.selectedDev = null;
+        STATE.ui.selectedMatch = STATE.ui.selectedMatch === id ? null : id;
+        render(); break;
+      case 'clearSelection':
+        STATE.ui.selectedDev = null; STATE.ui.selectedMatch = null;
+        render(); break;
+
+      // Collapse
+      case 'collapseAll': {
+        const val = el.dataset.val === '1';
+        objToArr(STATE.data.matches).forEach(m => fbUpdate(`matches/${m.id}`, {col: val}));
+        const unm = unmatchedKansen();
+        unm.forEach(k => STATE.ui.collapsedKansen[k.id] = val);
+        if (!val) STATE.ui.collapsedKansen = {};
+        render(); break;
+      }
+      case 'collapseCol': {
+        const stageId = id;
+        const sm = objToArr(STATE.data.matches).filter(m => m.stage === stageId);
+        const allC = sm.length > 0 && sm.every(m => m.col);
+        sm.forEach(m => fbUpdate(`matches/${m.id}`, {col: !allC}));
+        break;
+      }
+      case 'collapseAllKansen': {
+        const unm = unmatchedKansen();
+        const allF = unm.every(k => STATE.ui.collapsedKansen[k.id]);
+        unm.forEach(k => STATE.ui.collapsedKansen[k.id] = !allF);
+        if (allF) STATE.ui.collapsedKansen = {};
+        render(); break;
+      }
+      case 'collapseCatKansen': {
+        const catId = id;
+        const unm = unmatchedKansen().filter(k => k.cid === catId);
+        const allF = unm.every(k => STATE.ui.collapsedKansen[k.id]);
+        unm.forEach(k => STATE.ui.collapsedKansen[k.id] = !allF);
+        render(); break;
+      }
+      case 'toggleKansCollapse':
+        STATE.ui.collapsedKansen[id] = !STATE.ui.collapsedKansen[id];
+        render(); break;
+      case 'toggleMatchCollapse':
+        fbUpdate(`matches/${id}`, {col: !(STATE.data.matches[id]?.col)});
+        break;
+
+      // Header
+      case 'toggleDark':
+        STATE.ui.dark = !STATE.ui.dark;
+        localStorage.setItem('kb_dark', STATE.ui.dark ? '1' : '0');
+        applyTheme(); render(); break;
+      case 'print': window.print(); break;
+      case 'showAlerts':
+        STATE.ui.modal = 'alerts'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
+        renderModal(); break;
+
+      // Dev CRUD
+      case 'addDev': {
+        const dts = sortedArr(STATE.data.devTypes);
+        const tid = dts[0]?.id || '';
+        const cnt = objToArr(STATE.data.devs).filter(d => d.tid === tid).length;
+        const nd = {name:'',tid,schaal:'',contact:'',notitie:'',so:cnt,createdAt:today(),updatedAt:today(),ownerId:null};
+        const nid = fbPush('devs', nd);
+        STATE.ui.modal = 'editDev'; STATE.ui.modalData = {...nd, id:nid}; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      }
+      case 'editDev': {
+        const dev = STATE.data.devs[id];
+        if (dev) { STATE.ui.modal = 'editDev'; STATE.ui.modalData = {...dev, id}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'saveDev': {
+        const d = STATE.ui.modalData; if (!d) break;
+        fbUpdate(`devs/${d.id}`, {name:d.name||'',tid:d.tid||'',schaal:d.schaal||'',contact:d.contact||'',notitie:d.notitie||'',updatedAt:today()});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'confirmDeleteDev': {
+        const dev = STATE.data.devs[id];
+        STATE.ui.modal = 'confirmDelete';
+        STATE.ui.modalExtra = {type:'dev',id,name:dev?.name||'Naamloos'};
+        renderModal(); break;
+      }
+
+      // Kans CRUD
+      case 'addKans': {
+        const nk = {name:'',cid:'',adres:'',omvang:'',type:'Wonen',notitie:'',contact:'',so:objToArr(STATE.data.kansen).length,createdAt:today(),updatedAt:today(),ownerId:null};
+        const nid = fbPush('kansen', nk);
+        STATE.ui.modal = 'editKans'; STATE.ui.modalData = {...nk, id:nid}; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      }
+      case 'editKans': {
+        const k = STATE.data.kansen[id];
+        if (k) { STATE.ui.modal = 'editKans'; STATE.ui.modalData = {...k, id}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'saveKans': {
+        const k = STATE.ui.modalData; if (!k) break;
+        fbUpdate(`kansen/${k.id}`, {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',updatedAt:today()});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'confirmDeleteKans': {
+        const k = STATE.data.kansen[id];
+        STATE.ui.modal = 'confirmDelete';
+        STATE.ui.modalExtra = {type:'kans',id,name:k?.name||'Naamloos'};
+        renderModal(); break;
+      }
+
+      // Match CRUD
+      case 'matchKans': {
+        const k = STATE.data.kansen[id];
+        STATE.ui.modal = 'pickDevs';
+        STATE.ui.modalData = {selectedDevs:[]};
+        STATE.ui.modalExtra = {kansId:id, kansName:k?.name||'', stage:'matches'};
+        renderModal(); break;
+      }
+      case 'addMatch': {
+        const stageId = el.dataset.stage;
+        STATE.ui.modal = 'pickKans';
+        STATE.ui.modalData = null;
+        STATE.ui.modalExtra = {stage:stageId, title:`Kans kiezen \u2014 ${STAGES.find(s=>s.id===stageId)?.label||''}`};
+        renderModal(); break;
+      }
+      case 'pickKans': {
+        const k = STATE.data.kansen[id];
+        const stageId = STATE.ui.modalExtra?.stage || 'matches';
+        STATE.ui.modal = 'pickDevs';
+        STATE.ui.modalData = {selectedDevs:[]};
+        STATE.ui.modalExtra = {kansId:id, kansName:k?.name||'', stage:stageId};
+        renderModal(); break;
+      }
+      case 'togglePickDev': {
+        const sel = STATE.ui.modalData.selectedDevs;
+        const idx = sel.indexOf(id);
+        if (idx >= 0) sel.splice(idx,1); else sel.push(id);
+        renderModal(); break;
+      }
+      case 'confirmMatch': {
+        const {kansId, stage} = STATE.ui.modalExtra;
+        const devIds = STATE.ui.modalData.selectedDevs;
+        const stg = stage || 'matches';
+        const cnt = objToArr(STATE.data.matches).filter(m => m.stage === stg).length;
+        fbPush('matches', {kid:kansId,links:devIds,coals:[],stage:stg,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:stg,at:today()}],ownerId:null});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'editMatch': {
+        const m = STATE.data.matches[id];
+        if (m) { STATE.ui.modal = 'editMatch'; STATE.ui.modalData = {...m, id, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[]))}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'saveMatch': {
+        const md = STATE.ui.modalData; if (!md) break;
+        const origM = STATE.data.matches[md.id];
+        const upd = {notitie:md.notitie||'',stage:md.stage,links:md.links||[],coals:md.coals||[],updatedAt:today()};
+        // StageHistory bijwerken als stage gewijzigd
+        if (origM && origM.stage !== md.stage) {
+          upd.stageHistory = [...(origM.stageHistory||[]), {stage:md.stage, at:today()}];
+          upd.so = objToArr(STATE.data.matches).filter(m => m.stage === md.stage).length;
+        }
+        fbUpdate(`matches/${md.id}`, upd);
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'confirmDeleteMatch':
+        STATE.ui.modal = 'confirmDelete';
+        STATE.ui.modalExtra = {type:'match',id};
+        renderModal(); break;
+      case 'editKansFromMatch': {
+        const k = STATE.data.kansen[id];
+        if (k) { STATE.ui.modal = 'editKans'; STATE.ui.modalData = {...k, id}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'toggleMatchDev': {
+        const did = el.dataset.did;
+        const md = STATE.ui.modalData; if (!md) break;
+        const idx = (md.links||[]).indexOf(did);
+        if (idx >= 0) md.links.splice(idx,1); else md.links.push(did);
+        renderModal(); break;
+      }
+      case 'unlinkDev': {
+        const mid = el.dataset.mid;
+        const did = el.dataset.did;
+        const m = STATE.data.matches[mid]; if (!m) break;
+        const links = (m.links||[]).filter(l => l !== did);
+        fbUpdate(`matches/${mid}`, {links, updatedAt:today()});
+        break;
+      }
+
+      // Coalities
+      case 'addCoalition': {
+        const mid = el.dataset.mid;
+        STATE.ui.modal = 'coalition';
+        STATE.ui.modalData = {selectedDevs:[]};
+        STATE.ui.modalExtra = {mid, editing:false, cidx:null};
+        renderModal(); break;
+      }
+      case 'editCoalition': {
+        const mid = el.dataset.mid;
+        const cidx = parseInt(el.dataset.cidx);
+        const m = STATE.data.matches[mid]; if (!m) break;
+        const coal = (m.coals||[])[cidx] || [];
+        STATE.ui.modal = 'coalition';
+        STATE.ui.modalData = {selectedDevs:[...coal]};
+        STATE.ui.modalExtra = {mid, editing:true, cidx};
+        renderModal(); break;
+      }
+      case 'toggleCoalDev': {
+        const sel = STATE.ui.modalData.selectedDevs;
+        const idx = sel.indexOf(id);
+        if (idx >= 0) sel.splice(idx,1); else sel.push(id);
+        renderModal(); break;
+      }
+      case 'saveCoalition': {
+        const {mid, cidx, editing} = STATE.ui.modalExtra;
+        const devIds = STATE.ui.modalData.selectedDevs;
+        const m = STATE.data.matches[mid]; if (!m) break;
+        const coals = JSON.parse(JSON.stringify(m.coals||[]));
+        if (editing && cidx !== null) coals[cidx] = devIds; else coals.push(devIds);
+        fbUpdate(`matches/${mid}`, {coals, updatedAt:today()});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'deleteCoalition': {
+        const mid = el.dataset.mid;
+        const cidx = parseInt(el.dataset.cidx);
+        STATE.ui.modal = 'confirmDelete';
+        STATE.ui.modalExtra = {type:'coalition',mid,cidx};
+        renderModal(); break;
+      }
+
+      // Categorie CRUD
+      case 'addDevType':
+        STATE.ui.modal = 'addDevType'; STATE.ui.modalData = {label:'',short:''}; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      case 'editDevType': {
+        const dt = STATE.data.devTypes[id];
+        if (dt) { STATE.ui.modal = 'editDevType'; STATE.ui.modalData = {...dt, id}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'saveNewDevType': {
+        const d = STATE.ui.modalData; if (!d || !d.label) break;
+        fbPush('devTypes', {label:d.label, short:(d.short||'').toUpperCase(), so:objToArr(STATE.data.devTypes).length});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'saveDevType': {
+        const d = STATE.ui.modalData; if (!d) break;
+        fbUpdate(`devTypes/${d.id}`, {label:d.label||'', short:(d.short||'').toUpperCase(), updatedAt:today()});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'confirmDeleteDevType':
+        STATE.ui.modal = 'confirmDelete'; STATE.ui.modalExtra = {type:'devType',id};
+        renderModal(); break;
+      case 'addKansCat':
+        STATE.ui.modal = 'addKansCat'; STATE.ui.modalData = {label:''}; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      case 'editKansCat': {
+        const kc = STATE.data.kansCats[id];
+        if (kc) { STATE.ui.modal = 'editKansCat'; STATE.ui.modalData = {...kc, id}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+      case 'saveNewKansCat': {
+        const d = STATE.ui.modalData; if (!d || !d.label) break;
+        fbPush('kansCats', {label:d.label, so:objToArr(STATE.data.kansCats).length});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'saveKansCat': {
+        const d = STATE.ui.modalData; if (!d) break;
+        fbUpdate(`kansCats/${d.id}`, {label:d.label||'', updatedAt:today()});
+        STATE.ui.modal = null; renderModal(); break;
+      }
+      case 'confirmDeleteKansCat':
+        STATE.ui.modal = 'confirmDelete'; STATE.ui.modalExtra = {type:'kansCat',id};
+        renderModal(); break;
+
+      // Delete executie
+      case 'executeDelete': {
+        const ex = STATE.ui.modalExtra; if (!ex) break;
+        switch(ex.type) {
+          case 'dev': {
+            fbRemove(`devs/${ex.id}`);
+            // Cascade: verwijder uit alle match links en coalities
+            objToArr(STATE.data.matches).forEach(m => {
+              const links = (m.links||[]).filter(l => l !== ex.id);
+              const coals = (m.coals||[]).map(c => (c||[]).filter(x => x !== ex.id)).filter(c => c.length > 0);
+              if (links.length !== (m.links||[]).length || coals.length !== (m.coals||[]).length) {
+                fbUpdate(`matches/${m.id}`, {links, coals, updatedAt:today()});
+              }
+            });
+            break;
+          }
+          case 'kans': {
+            fbRemove(`kansen/${ex.id}`);
+            objToArr(STATE.data.matches).filter(m => m.kid === ex.id).forEach(m => fbRemove(`matches/${m.id}`));
+            break;
+          }
+          case 'match': fbRemove(`matches/${ex.id}`); break;
+          case 'coalition': {
+            const m = STATE.data.matches[ex.mid]; if (!m) break;
+            const coals = JSON.parse(JSON.stringify(m.coals||[]));
+            coals.splice(ex.cidx, 1);
+            fbUpdate(`matches/${ex.mid}`, {coals, updatedAt:today()});
+            break;
+          }
+          case 'devType': {
+            fbRemove(`devTypes/${ex.id}`);
+            objToArr(STATE.data.devs).filter(d => d.tid === ex.id).forEach(d => fbUpdate(`devs/${d.id}`, {tid:'', updatedAt:today()}));
+            break;
+          }
+          case 'kansCat': {
+            fbRemove(`kansCats/${ex.id}`);
+            objToArr(STATE.data.kansen).filter(k => k.cid === ex.id).forEach(k => fbUpdate(`kansen/${k.id}`, {cid:'', updatedAt:today()}));
+            break;
+          }
+        }
+        STATE.ui.modal = null; renderModal(); break;
+      }
+
+      // Alerts
+      case 'alertGoToMatch': {
+        STATE.ui.modal = null; renderModal();
+        const m = STATE.data.matches[id];
+        if (m) { STATE.ui.modal = 'editMatch'; STATE.ui.modalData = {...m, id, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[]))}; STATE.ui.modalExtra = null; renderModal(); }
+        break;
+      }
+
+      // Stage gate
+      case 'toggleGateCheck':
+        if (STATE.ui.modalData) { STATE.ui.modalData.checked = !STATE.ui.modalData.checked; renderModal(); }
+        break;
+      case 'confirmStageGate': {
+        const ex = STATE.ui.modalExtra; if (!ex) break;
+        const newStage = ex.pendingStage;
+        if (ex.returnModal === 'editMatch') {
+          const mid = ex.matchId;
+          const m = STATE.data.matches[mid];
+          if (m) {
+            STATE.ui.modal = 'editMatch';
+            STATE.ui.modalData = {...m, id:mid, stage:newStage, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[]))};
+            STATE.ui.modalExtra = null;
+            renderModal();
+          }
+        } else if (ex.dragMatchId) {
+          // Drag & drop stage change
+          const m = STATE.data.matches[ex.dragMatchId];
+          if (m) {
+            const cnt = objToArr(STATE.data.matches).filter(x => x.stage === newStage).length;
+            const hist = [...(m.stageHistory||[]), {stage:newStage, at:today()}];
+            fbUpdate(`matches/${ex.dragMatchId}`, {stage:newStage, so:cnt, stageHistory:hist, updatedAt:today()});
+          }
+          STATE.ui.modal = null; renderModal();
+        }
+        break;
+      }
+
+      // Modal sluiten
+      case 'closeModal':
+        STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
+        renderModal(); break;
+    }
+  });
+
+  // ─── Drag & Drop ───
+  document.body.addEventListener('dragstart', e => {
+    const el = e.target.closest('[data-drag-type]');
+    if (!el) return;
+    const type = el.dataset.dragType;
+    const dragId = el.dataset.dragId;
+    e.dataTransfer.setData('text/plain', JSON.stringify({type, id:dragId}));
+    e.dataTransfer.effectAllowed = 'move';
+    if (type === 'match') STATE.ui.dragging = dragId;
+    if (type === 'kans') STATE.ui.draggingKans = dragId;
+    setTimeout(() => { el.style.opacity = '0.4'; }, 0);
+  });
+
+  document.body.addEventListener('dragend', e => {
+    const el = e.target.closest('[data-drag-type]');
+    if (el) el.style.opacity = '1';
+    STATE.ui.dragging = null;
+    STATE.ui.draggingKans = null;
+    STATE.ui.dragOver = null;
+    STATE.ui.dragKansen = false;
+    render();
+  });
+
+  // Pipeline kolommen: drop targets
+  document.body.addEventListener('dragover', e => {
+    const col = e.target.closest('[data-stage]');
+    const kansenPanel = e.target.closest('#kansen-panel');
+    if (col || kansenPanel) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (col && STATE.ui.dragOver !== col.dataset.stage) {
+        STATE.ui.dragOver = col.dataset.stage;
+        STATE.ui.dragKansen = false;
+        render();
+      }
+      if (kansenPanel && !STATE.ui.dragKansen) {
+        STATE.ui.dragKansen = true;
+        STATE.ui.dragOver = null;
+        render();
+      }
+    }
+  });
+
+  document.body.addEventListener('drop', e => {
+    e.preventDefault();
+    let data;
+    try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+
+    const col = e.target.closest('[data-stage]');
+    const kansenPanel = e.target.closest('#kansen-panel');
+
+    if (kansenPanel && data.type === 'match') {
+      // Unmatch: verwijder match
+      fbRemove(`matches/${data.id}`);
+    } else if (col && data.type === 'match') {
+      const newStage = col.dataset.stage;
+      const m = STATE.data.matches[data.id]; if (!m) return;
+      if (m.stage === newStage) {
+        // Reorder binnen kolom
+        const maxSo = Math.max(...objToArr(STATE.data.matches).filter(x => x.stage === newStage).map(x => x.so||0), 0);
+        fbUpdate(`matches/${data.id}`, {so: maxSo + 1, updatedAt:today()});
+      } else {
+        const oldIdx = STAGE_ORDER[m.stage] || 0;
+        const newIdx = STAGE_ORDER[newStage] || 0;
+        if (newIdx > oldIdx && STAGE_GATES[newStage]) {
+          // Stage gate
+          STATE.ui.modal = 'stageGate';
+          STATE.ui.modalData = {checked: false};
+          STATE.ui.modalExtra = {...STAGE_GATES[newStage], dragMatchId: data.id, pendingStage: newStage};
+          renderModal();
+        } else {
+          // Vrij verplaatsen (terug of geen gate)
+          const cnt = objToArr(STATE.data.matches).filter(x => x.stage === newStage).length;
+          const hist = [...(m.stageHistory||[]), {stage:newStage, at:today()}];
+          fbUpdate(`matches/${data.id}`, {stage:newStage, so:cnt, stageHistory:hist, updatedAt:today()});
+        }
+      }
+    } else if (col && data.type === 'kans') {
+      // Kans naar pipeline → open dev-picker
+      const k = STATE.data.kansen[data.id]; if (!k) return;
+      STATE.ui.modal = 'pickDevs';
+      STATE.ui.modalData = {selectedDevs:[]};
+      STATE.ui.modalExtra = {kansId:data.id, kansName:k.name||'', stage:col.dataset.stage};
+      renderModal();
+    }
+
+    STATE.ui.dragging = null; STATE.ui.draggingKans = null;
+    STATE.ui.dragOver = null; STATE.ui.dragKansen = false;
+  });
+}
+
+// ─── INIT ────────────────────────────────────────
+(function init() {
+  if (localStorage.getItem('kb_session') === '1') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    initFirebase();
+    applyTheme();
+    setupListeners();
+    setupEventListeners();
+  }
+  // Enter-toets op login
+  document.getElementById('login-pw').addEventListener('keydown', e => {
+    if (e.key === 'Enter') KB.handleLogin();
+  });
+})();
+
+  </script>
+</body>
+</html>
