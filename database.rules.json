@@ -3,7 +3,7 @@
     "meta": {
       "passwordHash": {
         ".read": true,
-        ".write": false
+        ".write": true
       }
     },
     "devTypes": { ".read": true, ".write": true },
