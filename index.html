@@ -453,8 +453,14 @@ let db = null;
 
 function initFirebase() {
   if (db) return;
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    db = firebase.database();
+  } catch(e) {
+    console.error('Firebase init fout:', e);
+  }
 }
 
 function setupListeners() {
@@ -494,7 +500,10 @@ function showLoginMode() {
   document.getElementById('login-mode').style.display = 'flex';
 }
 
+let _appEntered = false;
 function enterApp() {
+  if (_appEntered) return;
+  _appEntered = true;
   localStorage.setItem('kb_session', '1');
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -2069,20 +2078,25 @@ function setupEventListeners() {
 
 // ─── INIT ────────────────────────────────────────
 (function init() {
-  initFirebase();
-  if (localStorage.getItem('kb_session') === '1') {
-    enterApp();
+  try { initFirebase(); } catch(e) { console.error('Init fout:', e); }
+
+  if (localStorage.getItem('kb_session') === '1' && db) {
+    try { enterApp(); } catch(e) {
+      console.error('EnterApp fout:', e);
+      localStorage.removeItem('kb_session');
+    }
   }
-  // Enter-toets op login
-  document.getElementById('login-pw').addEventListener('keydown', e => {
-    if (e.key === 'Enter') KB.handleLogin();
-  });
-  // Enter-toets op setup
-  document.getElementById('setup-pw2').addEventListener('keydown', e => {
-    if (e.key === 'Enter') KB.handleSetup();
-  });
-  // Resize: update mobiele view
-  window.addEventListener('resize', () => updateMobView());
+
+  // Event listeners — altijd registreren, ongeacht Firebase status
+  try {
+    document.getElementById('login-pw').addEventListener('keydown', e => {
+      if (e.key === 'Enter') KB.handleLogin();
+    });
+    document.getElementById('setup-pw2').addEventListener('keydown', e => {
+      if (e.key === 'Enter') KB.handleSetup();
+    });
+    window.addEventListener('resize', () => updateMobView());
+  } catch(e) { console.error('Event listener fout:', e); }
 })();
 
   </script>
