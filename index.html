@@ -433,6 +433,7 @@ const firebaseConfig = {
 let db = null;
 
 function initFirebase() {
+  if (db) return;
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
 }
@@ -741,8 +742,14 @@ function renderDevsPanel(c, devs, dts, matches) {
   if (uncatDevs.length > 0) {
     html += '<div style="margin-bottom:14px"><div style="font-size:10px;color:'+c.grijs+';font-style:italic;margin-bottom:4px">Geen categorie</div>';
     uncatDevs.forEach(dev => {
-      html += `<div class="dev-item" style="border-left:3px solid ${c.rood};font-size:12px" data-action="selectDev" data-id="${dev.id}">
-        <span>${esc(dev.name||'Naamloos')}</span>
+      const isSel = selectedDev === dev.id;
+      const cnt = objToArr(STATE.data.matches).filter(m => matchDevIds(m).has(dev.id)).length;
+      let bg = 'transparent', col = c.txtPrimary, op = '1', bl = `3px solid ${c.rood}`;
+      if (isSel) { bg = c.devSelBg; col = c.devSelTxt; bl = `3px solid ${c.devSelBorder}`; }
+      else if (hlMap && hlMap.has(dev.id)) { bg = c.devHlBg; bl = `3px solid ${c.devHlBorder}`; }
+      else if (hlMap && !hlMap.has(dev.id)) op = '0.15';
+      html += `<div class="dev-item" style="background:${bg};color:${col};border-left:${bl};opacity:${op};font-size:12px" data-action="selectDev" data-id="${dev.id}">
+        <span style="color:${col}">${esc(dev.name||'Naamloos')}</span>
         <button data-noprint class="btn-xs" style="background:${c.lichtgrijs};border:none;cursor:pointer;font-size:11px;color:${c.grijs};border-radius:3px;font-family:inherit" data-action="editDev" data-id="${dev.id}">\u270E</button>
       </div>`;
     });
@@ -922,9 +929,9 @@ function renderMatchCard(c, match, stage, devs, dts) {
     style="padding:${isC?'8px 12px':'14px'};background:${bgc};border-left:5px solid ${bc};opacity:${op};box-shadow:${shadow}">`;
 
   // Titel-rij (altijd zichtbaar)
-  html += `<div style="display:flex;align-items:flex-start;gap:6px;cursor:pointer">`;
+  html += `<div style="display:flex;align-items:flex-start;gap:6px;cursor:pointer" data-action="selectMatch" data-id="${match.id}">`;
   html += `<span style="font-size:14px;color:${c.grijs};line-height:1.4;flex-shrink:0;padding:2px 4px" data-action="toggleMatchCollapse" data-id="${match.id}">${isC?'\u25B8':'\u25BE'}</span>`;
-  html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0" data-action="selectMatch" data-id="${match.id}">${esc(kans.name)}</span>`;
+  html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
   if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0;margin-top:3px">(${tl})</span>`;
   html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33;margin-top:1px">${esc(stage.short)}</span>`;
   html += '</div>';
@@ -1066,8 +1073,8 @@ function renderEditDevModal(c) {
     <div class="field"><label>Schaal</label><input value="${esc(d.schaal||'')}" oninput="KB.mf('schaal',this.value)"></div>
     <div class="field"><label>Contact</label><input value="${esc(d.contact||'')}" oninput="KB.mf('contact',this.value)"></div>
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(d.notitie||'')}</textarea></div>
-    <div style="display:flex;justify-content:space-between;margin-top:14px">
-      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteDev" data-id="${d.id}">Verwijder</button>
+    <div style="display:flex;justify-content:${d.isNew?'flex-end':'space-between'};margin-top:14px">
+      ${d.isNew?'':`<button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteDev" data-id="${d.id}">Verwijder</button>`}
       <button class="btn btn-black" data-action="saveDev">Klaar</button>
     </div>`;
 }
@@ -1089,8 +1096,8 @@ function renderEditKansModal(c) {
     </div>
     <div class="field"><label>Contact</label><input value="${esc(k.contact||'')}" oninput="KB.mf('contact',this.value)"></div>
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(k.notitie||'')}</textarea></div>
-    <div style="display:flex;justify-content:space-between;margin-top:14px">
-      <button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteKans" data-id="${k.id}">Verwijder</button>
+    <div style="display:flex;justify-content:${k.isNew?'flex-end':'space-between'};margin-top:14px">
+      ${k.isNew?'':`<button class="btn btn-red" style="font-size:11px" data-action="confirmDeleteKans" data-id="${k.id}">Verwijder</button>`}
       <button class="btn btn-black" data-action="saveKans">Klaar</button>
     </div>`;
 }
@@ -1375,6 +1382,7 @@ function setupEventListeners() {
         if (isMob() && STATE.ui.selectedDev) { STATE.ui.mobTab = 'pipeline'; }
         render(); break;
       case 'selectMatch':
+        if (e.target.closest('[data-action="toggleMatchCollapse"]')) break;
         STATE.ui.selectedDev = null;
         STATE.ui.selectedMatch = STATE.ui.selectedMatch === id ? null : id;
         if (isMob() && STATE.ui.selectedMatch) { STATE.ui.mobTab = 'devs'; }
@@ -1386,7 +1394,9 @@ function setupEventListeners() {
       // Collapse
       case 'collapseAll': {
         const val = el.dataset.val === '1';
-        objToArr(STATE.data.matches).forEach(m => fbUpdate(`matches/${m.id}`, {col: val}));
+        const updates = {};
+        objToArr(STATE.data.matches).forEach(m => { updates[`matches/${m.id}/col`] = val; });
+        if (Object.keys(updates).length > 0) fbMulti(updates);
         const unm = unmatchedKansen();
         unm.forEach(k => STATE.ui.collapsedKansen[k.id] = val);
         if (!val) STATE.ui.collapsedKansen = {};
@@ -1396,7 +1406,9 @@ function setupEventListeners() {
         const stageId = id;
         const sm = objToArr(STATE.data.matches).filter(m => m.stage === stageId);
         const allC = sm.length > 0 && sm.every(m => m.col);
-        sm.forEach(m => fbUpdate(`matches/${m.id}`, {col: !allC}));
+        const updates = {};
+        sm.forEach(m => { updates[`matches/${m.id}/col`] = !allC; });
+        if (Object.keys(updates).length > 0) fbMulti(updates);
         break;
       }
       case 'collapseAllKansen': {
@@ -1461,10 +1473,7 @@ function setupEventListeners() {
       case 'addDev': {
         const dts = sortedArr(STATE.data.devTypes);
         const tid = dts[0]?.id || '';
-        const cnt = objToArr(STATE.data.devs).filter(d => d.tid === tid).length;
-        const nd = {name:'',tid,schaal:'',contact:'',notitie:'',so:cnt,createdAt:today(),updatedAt:today(),ownerId:null};
-        const nid = fbPush('devs', nd);
-        STATE.ui.modal = 'editDev'; STATE.ui.modalData = {...nd, id:nid}; STATE.ui.modalExtra = null;
+        STATE.ui.modal = 'editDev'; STATE.ui.modalData = {name:'',tid,schaal:'',contact:'',notitie:'',isNew:true}; STATE.ui.modalExtra = null;
         renderModal(); break;
       }
       case 'editDev': {
@@ -1474,7 +1483,12 @@ function setupEventListeners() {
       }
       case 'saveDev': {
         const d = STATE.ui.modalData; if (!d) break;
-        fbUpdate(`devs/${d.id}`, {name:d.name||'',tid:d.tid||'',schaal:d.schaal||'',contact:d.contact||'',notitie:d.notitie||'',updatedAt:today()});
+        if (d.isNew) {
+          const so = objToArr(STATE.data.devs).filter(x => x.tid === (d.tid||'')).length;
+          fbPush('devs', {name:d.name||'',tid:d.tid||'',schaal:d.schaal||'',contact:d.contact||'',notitie:d.notitie||'',so,createdAt:today(),updatedAt:today(),ownerId:null});
+        } else {
+          fbUpdate(`devs/${d.id}`, {name:d.name||'',tid:d.tid||'',schaal:d.schaal||'',contact:d.contact||'',notitie:d.notitie||'',updatedAt:today()});
+        }
         STATE.ui.modal = null; renderModal(); break;
       }
       case 'confirmDeleteDev': {
@@ -1486,9 +1500,7 @@ function setupEventListeners() {
 
       // Kans CRUD
       case 'addKans': {
-        const nk = {name:'',cid:'',adres:'',omvang:'',type:'Wonen',notitie:'',contact:'',so:objToArr(STATE.data.kansen).length,createdAt:today(),updatedAt:today(),ownerId:null};
-        const nid = fbPush('kansen', nk);
-        STATE.ui.modal = 'editKans'; STATE.ui.modalData = {...nk, id:nid}; STATE.ui.modalExtra = null;
+        STATE.ui.modal = 'editKans'; STATE.ui.modalData = {name:'',cid:'',adres:'',omvang:'',type:'Wonen',notitie:'',contact:'',isNew:true}; STATE.ui.modalExtra = null;
         renderModal(); break;
       }
       case 'editKans': {
@@ -1498,7 +1510,12 @@ function setupEventListeners() {
       }
       case 'saveKans': {
         const k = STATE.ui.modalData; if (!k) break;
-        fbUpdate(`kansen/${k.id}`, {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',updatedAt:today()});
+        if (k.isNew) {
+          const so = objToArr(STATE.data.kansen).length;
+          fbPush('kansen', {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',so,createdAt:today(),updatedAt:today(),ownerId:null});
+        } else {
+          fbUpdate(`kansen/${k.id}`, {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',updatedAt:today()});
+        }
         STATE.ui.modal = null; renderModal(); break;
       }
       case 'confirmDeleteKans': {
@@ -1758,37 +1775,6 @@ function setupEventListeners() {
         STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
         renderModal(); break;
 
-      // ─── Mobiel ───
-      case 'mobTab':
-        STATE.ui.mobTab = el.dataset.tab;
-        updateMobView(); break;
-      case 'mobStageTab':
-        STATE.ui.mobStage = el.dataset.stage;
-        updateMobView(); break;
-      case 'mobMoveMatch': {
-        const mid = el.dataset.mid;
-        const toStage = el.dataset.to;
-        const m = STATE.data.matches[mid]; if (!m) break;
-        const oldIdx = STAGE_ORDER[m.stage] || 0;
-        const newIdx = STAGE_ORDER[toStage] || 0;
-        if (newIdx > oldIdx && STAGE_GATES[toStage]) {
-          STATE.ui.modal = 'stageGate';
-          STATE.ui.modalData = {checked: false};
-          STATE.ui.modalExtra = {...STAGE_GATES[toStage], dragMatchId: mid, pendingStage: toStage};
-          renderModal();
-        } else {
-          const cnt = objToArr(STATE.data.matches).filter(x => x.stage === toStage).length;
-          const hist = [...(m.stageHistory||[]), {stage:toStage, at:today()}];
-          fbUpdate(`matches/${mid}`, {stage:toStage, so:cnt, stageHistory:hist, updatedAt:today()});
-        }
-        break;
-      }
-      case 'mobUnmatch': {
-        const mid = el.dataset.mid;
-        STATE.ui.modal = 'confirmDelete';
-        STATE.ui.modalExtra = {type:'match',id:mid};
-        renderModal(); break;
-      }
     }
   });
 
