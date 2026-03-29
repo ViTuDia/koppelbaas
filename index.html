@@ -479,18 +479,21 @@ async function hashPassword(pw) {
 }
 
 // Check of er al een wachtwoord is ingesteld
+function showSetupMode() {
+  document.getElementById('login-mode').style.display = 'none';
+  document.getElementById('setup-mode').style.display = 'flex';
+  document.getElementById('setup-pw1').focus();
+}
+
 KB.checkSetup = async function() {
   try {
     if (!db) initFirebase();
     const snap = await db.ref('meta/passwordHash').once('value');
     if (!snap.val()) {
-      // Geen wachtwoord → toon setup-modus
-      document.getElementById('login-mode').style.display = 'none';
-      document.getElementById('setup-mode').style.display = 'flex';
-      document.getElementById('setup-pw1').focus();
+      showSetupMode();
     }
   } catch(e) {
-    // Bij fout: toon gewoon login (setup is optioneel)
+    document.getElementById('login-error').textContent = 'Kan niet verbinden: ' + e.message;
   }
 };
 
@@ -522,16 +525,14 @@ KB.handleSetup = async function() {
 
 KB.handleLogin = async function() {
   const pw = document.getElementById('login-pw').value;
-  if (!pw) return;
+  if (!pw) { document.getElementById('login-error').textContent = 'Voer een wachtwoord in.'; return; }
+  document.getElementById('login-error').textContent = '';
   try {
     if (!db) initFirebase();
     const snap = await db.ref('meta/passwordHash').once('value');
     const stored = snap.val();
     if (!stored) {
-      // Geen wachtwoord ingesteld → schakel naar setup
-      document.getElementById('login-mode').style.display = 'none';
-      document.getElementById('setup-mode').style.display = 'flex';
-      document.getElementById('setup-pw1').focus();
+      showSetupMode();
       return;
     }
     const hashed = await hashPassword(pw);
@@ -2071,17 +2072,32 @@ function setupEventListeners() {
 }
 
 // ─── INIT ────────────────────────────────────────
-(function init() {
+(async function init() {
+  initFirebase();
   if (localStorage.getItem('kb_session') === '1') {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    initFirebase();
-    applyTheme();
-    setupListeners();
-    setupEventListeners();
+    // Sessie aanwezig — check of wachtwoord nog bestaat
+    try {
+      const snap = await db.ref('meta/passwordHash').once('value');
+      if (!snap.val()) {
+        // Wachtwoord is weg → terug naar setup
+        localStorage.removeItem('kb_session');
+        showSetupMode();
+      } else {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        applyTheme();
+        setupListeners();
+        setupEventListeners();
+      }
+    } catch(e) {
+      // Netwerk-fout → probeer toch door te gaan (offline scenario)
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      applyTheme();
+      setupListeners();
+      setupEventListeners();
+    }
   } else {
-    // Check of er al een wachtwoord is → zo niet, toon setup
-    initFirebase();
     KB.checkSetup();
   }
   // Enter-toets op login
