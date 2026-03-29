@@ -36,8 +36,9 @@
     #login-screen .login-success { color: var(--groen); font-size: 12px; margin-top: 8px; min-height: 18px; }
 
     /* Layout */
-    #app { display: none; flex-direction: column; min-height: 100vh; }
-    .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+    html, body { height: 100%; }
+    #app { display: none; flex-direction: column; height: 100%; }
+    .main { display: flex; flex: 1; overflow: hidden; }
     .header { background: var(--header); color: var(--headerTxt); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     .header-left { display: flex; align-items: center; gap: 18px; }
     .header-logo-ard { font-size: 26px; font-weight: 700; letter-spacing: 3px; }
@@ -101,6 +102,7 @@
 
     /* Drop zone */
     .drop-zone-active { padding: 10px; border: 2px dashed var(--geel); border-radius: 6px; text-align: center; color: var(--geel); font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+    .drag-indicator { height: 3px; background: var(--geel); border-radius: 2px; margin: 2px 0; transition: opacity 0.1s; }
 
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: var(--modalOverlay); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -129,16 +131,18 @@
     /* Print */
     @page { size: landscape; margin: 0; }
     @media print {
+      html, body { height: auto !important; overflow: visible !important; }
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; margin: 0 !important; }
-      * { overflow: visible !important; }
       [data-noprint] { display: none !important; }
       .mob-tabs { display: none !important; }
       #login-screen { display: none !important; }
-      #app { display: flex !important; flex-direction: column !important; height: auto !important; min-height: 0 !important; }
-      .main { flex: none !important; height: auto !important; }
-      .left-panels { height: auto !important; }
-      .panel { height: auto !important; }
-      .pipe-col-body { padding-bottom: 8px !important; }
+      #app { display: flex !important; flex-direction: column !important; height: auto !important; }
+      .main { flex: none !important; height: auto !important; overflow: visible !important; }
+      .left-panels { overflow: visible !important; height: auto !important; width: 500px !important; flex-shrink: 0 !important; }
+      .panel { overflow: visible !important; height: auto !important; }
+      .pipeline { overflow: visible !important; flex: 1 !important; }
+      .pipe-col { overflow: visible !important; height: auto !important; }
+      .pipe-col-body { overflow: visible !important; padding-bottom: 8px !important; height: auto !important; }
       .header { padding: 8px 16px !important; }
       .sel-bar { padding: 4px 16px !important; min-height: 24px !important; }
       .footer { padding: 4px 16px !important; }
@@ -1860,15 +1864,22 @@ function setupEventListeners() {
     STATE.ui.draggingKans = null;
     STATE.ui.dragOver = null;
     STATE.ui.dragKansen = false;
+    clearDragIndicators();
     render();
   });
 
-  // Drop targets
+  // Drop targets + visuele indicator
+  let lastIndicatorTarget = null;
+  function clearDragIndicators() {
+    document.querySelectorAll('.drag-indicator').forEach(el => el.remove());
+    lastIndicatorTarget = null;
+  }
+
   document.body.addEventListener('dragover', e => {
     const col = e.target.closest('[data-stage]');
     const kansenPanel = e.target.closest('#kansen-panel');
-    const catTarget = e.target.closest('[data-drag-type="devType"]') || e.target.closest('[data-drag-type="kansCat"]');
-    if (col || kansenPanel || catTarget) {
+    const draggableTarget = e.target.closest('[data-drag-type]');
+    if (col || kansenPanel || draggableTarget) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       if (col && STATE.ui.dragOver !== col.dataset.stage) {
@@ -1880,6 +1891,20 @@ function setupEventListeners() {
         STATE.ui.dragKansen = true;
         STATE.ui.dragOver = null;
         render();
+      }
+      // Visuele drop-indicator
+      if (draggableTarget && draggableTarget !== lastIndicatorTarget) {
+        clearDragIndicators();
+        lastIndicatorTarget = draggableTarget;
+        const rect = draggableTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const indicator = document.createElement('div');
+        indicator.className = 'drag-indicator';
+        if (e.clientY < midY) {
+          draggableTarget.parentNode.insertBefore(indicator, draggableTarget);
+        } else {
+          draggableTarget.parentNode.insertBefore(indicator, draggableTarget.nextSibling);
+        }
       }
     }
   });
@@ -1972,6 +1997,7 @@ function setupEventListeners() {
 
     STATE.ui.dragging = null; STATE.ui.draggingKans = null;
     STATE.ui.dragOver = null; STATE.ui.dragKansen = false;
+    clearDragIndicators();
     render();
   });
 }
