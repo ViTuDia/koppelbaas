@@ -712,7 +712,8 @@ function renderDevsPanel(c, devs, dts, matches) {
   dts.forEach(type => {
     const td = devs.filter(d => d.tid === type.id).sort((a,b) => (a.so||0) - (b.so||0));
     html += '<div style="margin-bottom:16px">';
-    html += `<div class="dev-type-header">
+    html += `<div class="dev-type-header" draggable="true" data-drag-type="devType" data-drag-id="${type.id}" style="cursor:grab">
+      <span style="color:${c.grijs};font-size:10px;cursor:grab;margin-right:2px" data-noprint>\u2261</span>
       <span class="badge badge-lg">${esc(type.short||'?')}</span>
       <span style="font-size:14px;font-weight:600;flex:1;color:${c.txtPrimary}">${esc(type.label||'Naamloos')}</span>
       <button data-noprint class="btn-icon" data-action="editDevType" data-id="${type.id}">\u270E</button>
@@ -795,7 +796,8 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
     const ck = unmatched.filter(k => k.cid === cat.id).sort((a,b) => (a.so||0) - (b.so||0));
     const allCatFolded = ck.length > 0 && ck.every(k => STATE.ui.collapsedKansen[k.id]);
     html += '<div style="margin-bottom:16px">';
-    html += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px">`;
+    html += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;cursor:grab" draggable="true" data-drag-type="kansCat" data-drag-id="${cat.id}">`;
+    html += `<span style="color:${c.grijs};font-size:10px;cursor:grab;margin-right:2px" data-noprint>\u2261</span>`;
     if (ck.length > 0) {
       html += `<span style="font-size:14px;color:${c.grijs};cursor:pointer" data-action="collapseCatKansen" data-id="${cat.id}">${allCatFolded?'\u25B8':'\u25BE'}</span>`;
     }
@@ -947,11 +949,11 @@ function renderMatchCard(c, match, stage, devs, dts) {
     style="padding:14px;background:${bgc};border-left:5px solid ${bc};opacity:${op};box-shadow:${shadow}">`;
 
   // Titel-rij (altijd zichtbaar)
-  html += `<div style="display:flex;align-items:flex-start;gap:6px;cursor:pointer">`;
-  html += `<span style="font-size:14px;color:${c.grijs};line-height:1.4;flex-shrink:0;padding:2px 4px" data-action="toggleMatchCollapse" data-id="${match.id}">${isC?'\u25B8':'\u25BE'}</span>`;
+  html += `<div style="display:flex;align-items:center;gap:6px;cursor:pointer">`;
+  html += `<span style="font-size:14px;color:${c.grijs};flex-shrink:0;padding:2px 4px" data-action="toggleMatchCollapse" data-id="${match.id}">${isC?'\u25B8':'\u25BE'}</span>`;
   html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
-  if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0;margin-top:3px">(${tl})</span>`;
-  html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33;margin-top:1px">${esc(stage.short)}</span>`;
+  if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0">(${tl})</span>`;
+  html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33">${esc(stage.short)}</span>`;
   html += '</div>';
 
   // Uitgeklapte inhoud
@@ -1861,11 +1863,12 @@ function setupEventListeners() {
     render();
   });
 
-  // Pipeline kolommen: drop targets
+  // Drop targets
   document.body.addEventListener('dragover', e => {
     const col = e.target.closest('[data-stage]');
     const kansenPanel = e.target.closest('#kansen-panel');
-    if (col || kansenPanel) {
+    const catTarget = e.target.closest('[data-drag-type="devType"]') || e.target.closest('[data-drag-type="kansCat"]');
+    if (col || kansenPanel || catTarget) {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       if (col && STATE.ui.dragOver !== col.dataset.stage) {
@@ -1886,6 +1889,39 @@ function setupEventListeners() {
     let data;
     try { data = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
 
+    // ─── DevType reorder ───
+    if (data.type === 'devType') {
+      const targetHeader = e.target.closest('[data-drag-type="devType"]');
+      if (targetHeader && targetHeader.dataset.dragId !== data.id) {
+        const dts = sortedArr(STATE.data.devTypes);
+        const fromIdx = dts.findIndex(t => t.id === data.id);
+        const toIdx = dts.findIndex(t => t.id === targetHeader.dataset.dragId);
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const item = dts.splice(fromIdx, 1)[0];
+          dts.splice(toIdx, 0, item);
+          const updates = {};
+          dts.forEach((t, i) => { updates[`devTypes/${t.id}/so`] = i; });
+          fbMulti(updates);
+        }
+      }
+    }
+    // ─── KansCat reorder ───
+    else if (data.type === 'kansCat') {
+      const targetHeader = e.target.closest('[data-drag-type="kansCat"]');
+      if (targetHeader && targetHeader.dataset.dragId !== data.id) {
+        const kcs = sortedArr(STATE.data.kansCats);
+        const fromIdx = kcs.findIndex(c => c.id === data.id);
+        const toIdx = kcs.findIndex(c => c.id === targetHeader.dataset.dragId);
+        if (fromIdx >= 0 && toIdx >= 0) {
+          const item = kcs.splice(fromIdx, 1)[0];
+          kcs.splice(toIdx, 0, item);
+          const updates = {};
+          kcs.forEach((c, i) => { updates[`kansCats/${c.id}/so`] = i; });
+          fbMulti(updates);
+        }
+      }
+    }
+
     const col = e.target.closest('[data-stage]');
     const kansenPanel = e.target.closest('#kansen-panel');
 
@@ -1896,9 +1932,19 @@ function setupEventListeners() {
       const newStage = col.dataset.stage;
       const m = STATE.data.matches[data.id]; if (!m) return;
       if (m.stage === newStage) {
-        // Reorder binnen kolom
-        const maxSo = Math.max(...objToArr(STATE.data.matches).filter(x => x.stage === newStage).map(x => x.so||0), 0);
-        fbUpdate(`matches/${data.id}`, {so: maxSo + 1, updatedAt:today()});
+        // Reorder binnen kolom — insert bij drop-positie
+        const targetCard = e.target.closest('[data-drag-type="match"]');
+        const sm = objToArr(STATE.data.matches).filter(x => x.stage === newStage).sort((a,b) => (a.so||0) - (b.so||0));
+        const fromIdx = sm.findIndex(x => x.id === data.id);
+        let toIdx = targetCard ? sm.findIndex(x => x.id === targetCard.dataset.dragId) : sm.length - 1;
+        if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+          const item = sm.splice(fromIdx, 1)[0];
+          if (toIdx > fromIdx) toIdx--;
+          sm.splice(toIdx, 0, item);
+          const updates = {};
+          sm.forEach((x, i) => { updates[`matches/${x.id}/so`] = i; });
+          fbMulti(updates);
+        }
       } else {
         const oldIdx = STAGE_ORDER[m.stage] || 0;
         const newIdx = STAGE_ORDER[newStage] || 0;
