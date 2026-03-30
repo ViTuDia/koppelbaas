@@ -2144,10 +2144,75 @@ function setupEventListeners() {
     return null;
   }
 
+  // Check of een drop daadwerkelijk de positie zou wijzigen
+  function wouldChangePosition(targetEl, clientY) {
+    if (!dragType || !dragSrcId) return true;
+
+    if (dragType === 'devType') {
+      const grp = targetEl.closest('[data-devtype-group]');
+      if (!grp) return false;
+      const targetId = grp.dataset.devtypeGroup;
+      if (targetId === dragSrcId) return false;
+      const dts = sortedArr(STATE.data.devTypes);
+      const fromIdx = dts.findIndex(t => t.id === dragSrcId);
+      const targetIdx = dts.findIndex(t => t.id === targetId);
+      if (fromIdx < 0 || targetIdx < 0) return false;
+      const rect = grp.getBoundingClientRect();
+      const insertAfter = clientY > rect.top + rect.height / 2;
+      let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
+      if (fromIdx < toIdx) toIdx--;
+      return fromIdx !== toIdx;
+    }
+
+    if (dragType === 'kansCat') {
+      const grp = targetEl.closest('[data-kanscat-group]');
+      if (!grp) return false;
+      const targetId = grp.dataset.kanscatGroup;
+      if (targetId === dragSrcId) return false;
+      const kcs = sortedArr(STATE.data.kansCats);
+      const fromIdx = kcs.findIndex(c => c.id === dragSrcId);
+      const targetIdx = kcs.findIndex(c => c.id === targetId);
+      if (fromIdx < 0 || targetIdx < 0) return false;
+      const rect = grp.getBoundingClientRect();
+      const insertAfter = clientY > rect.top + rect.height / 2;
+      let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
+      if (fromIdx < toIdx) toIdx--;
+      return fromIdx !== toIdx;
+    }
+
+    if (dragType === 'match') {
+      const targetCard = targetEl.closest('[data-drag-type="match"]');
+      if (!targetCard || targetCard.dataset.dragId === dragSrcId) return false;
+      const col = targetEl.closest('[data-stage]');
+      if (!col) return false;
+      const m = STATE.data.matches[dragSrcId];
+      if (!m || m.stage !== col.dataset.stage) return true; // andere kolom = altijd wijziging
+      const sm = objToArr(STATE.data.matches).filter(x => x.stage === m.stage).sort((a,b) => (a.so||0) - (b.so||0));
+      const fromIdx = sm.findIndex(x => x.id === dragSrcId);
+      const targetIdx = sm.findIndex(x => x.id === targetCard.dataset.dragId);
+      if (fromIdx < 0 || targetIdx < 0) return false;
+      const rect = targetCard.getBoundingClientRect();
+      const insertAfter = clientY > rect.top + rect.height / 2;
+      let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
+      if (fromIdx < toIdx) toIdx--;
+      return fromIdx !== toIdx;
+    }
+
+    if (dragType === 'kans') {
+      const grp = targetEl.closest('[data-kanscat-group]');
+      if (!grp) return true; // naar pipeline = altijd wijziging
+      const targetCid = grp.dataset.kanscatGroup;
+      const kans = STATE.data.kansen[dragSrcId];
+      return kans && kans.cid !== targetCid;
+    }
+
+    return true;
+  }
+
   function showIndicatorAt(targetEl, clientY) {
     if (!targetEl) return;
     const dropTarget = findDropTargetAt(targetEl);
-    if (dropTarget && dropTarget.dataset.dragId !== dragSrcId) {
+    if (dropTarget && dropTarget.dataset.dragId !== dragSrcId && wouldChangePosition(targetEl, clientY)) {
       const tid = dropTarget.dataset.dragId;
       if (tid !== lastIndicatorId) {
         clearDragIndicators();
