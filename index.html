@@ -17,6 +17,7 @@
       --badgeBg: #2a2a2a; --badgeTxt: #fff;
       --devSelBg: #000; --devSelTxt: #fff; --devSelBorder: #d9a300;
       --devHlBg: #e8f5e9; --devHlBorder: #007b2f;
+      --catGroupBg: #f7f6f4; --catHeaderBg: #eeedea;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Rubik','Helvetica Neue',sans-serif; background: var(--bg); color: var(--txtPrimary); min-height: 100vh; overscroll-behavior: none; }
@@ -73,9 +74,14 @@
     .kans-card { padding: 8px 10px; margin-bottom: 4px; border-radius: 3px; border: 1px solid var(--kaartBorder); background: var(--kaart); cursor: grab; transition: opacity 0.12s; }
     .match-card { margin-bottom: 8px; border-radius: 4px; cursor: grab; transition: all 0.12s; border: 1px solid var(--zachtgrijs); }
 
+    /* Categorie groepen */
+    .cat-group { margin-bottom: 10px; background: var(--catGroupBg); border-radius: 4px; border: 1px solid var(--zachtgrijs); overflow: hidden; }
+    .cat-header { display: flex; align-items: center; gap: 5px; padding: 7px 10px; background: var(--catHeaderBg); border-bottom: 1px solid var(--zachtgrijs); cursor: grab; }
+    .cat-header .cat-label { font-size: 13px; font-weight: 600; flex: 1; color: var(--txtPrimary); }
+    .cat-items { padding: 4px 6px 6px; }
+
     /* Dev items */
-    .dev-item { padding: 7px 10px; margin-left: 28px; margin-bottom: 2px; border-radius: 3px; cursor: pointer; transition: all 0.12s; display: flex; justify-content: space-between; align-items: center; }
-    .dev-type-header { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; }
+    .dev-item { padding: 7px 10px; margin-left: 20px; margin-bottom: 2px; border-radius: 3px; cursor: pointer; transition: all 0.12s; display: flex; justify-content: space-between; align-items: center; }
 
     /* Badge */
     .badge { display: inline-flex; align-items: center; justify-content: center; border-radius: 2px; background: var(--badgeBg); color: var(--badgeTxt); font-weight: 500; flex-shrink: 0; letter-spacing: 0.5px; }
@@ -349,6 +355,7 @@ const LIGHT = {
   devHlBg:"#e8f5e9",devHlBorder:"#007b2f",
   modalBg:"#ffffff",modalOverlay:"rgba(0,0,0,0.4)",inputBorder:"#e8e7e4",
   badgeBg:"#2a2a2a",badgeTxt:"#ffffff",
+  catGroupBg:"#f7f6f4",catHeaderBg:"#eeedea",
 };
 const DARK = {
   zwart:"#000000",wit:"#ffffff",geel:"#d9a300",grijs:"#999999",
@@ -361,6 +368,7 @@ const DARK = {
   devHlBg:"#1a3a1a",devHlBorder:"#2ea852",
   modalBg:"#2a2a2a",modalOverlay:"rgba(0,0,0,0.7)",inputBorder:"#4a4a4a",
   badgeBg:"#d9a300",badgeTxt:"#000000",
+  catGroupBg:"#232323",catHeaderBg:"#2c2c2c",
 };
 
 const STAGES = [
@@ -672,6 +680,7 @@ function applyTheme() {
   r.setProperty('--devSelBg', c.devSelBg); r.setProperty('--devSelTxt', c.devSelTxt);
   r.setProperty('--devSelBorder', c.devSelBorder);
   r.setProperty('--devHlBg', c.devHlBg); r.setProperty('--devHlBorder', c.devHlBorder);
+  r.setProperty('--catGroupBg', c.catGroupBg); r.setProperty('--catHeaderBg', c.catHeaderBg);
   document.body.style.background = c.bg;
   document.body.style.color = c.txtPrimary;
 }
@@ -837,13 +846,14 @@ function renderDevsPanel(c, devs, dts, matches) {
   dts.forEach(type => {
     const searchD = STATE.ui.searchDevs.toLowerCase();
     const td = devs.filter(d => d.tid === type.id && (!searchD || (d.name||'').toLowerCase().includes(searchD) || (d.schaal||'').toLowerCase().includes(searchD))).sort((a,b) => (a.so||0) - (b.so||0));
-    html += `<div style="margin-bottom:16px" data-devtype-group="${type.id}">`;
-    html += `<div class="dev-type-header" draggable="true" data-drag-type="devType" data-drag-id="${type.id}" style="cursor:grab">
+    html += `<div class="cat-group" data-devtype-group="${type.id}">`;
+    html += `<div class="cat-header" draggable="true" data-drag-type="devType" data-drag-id="${type.id}">
       <span style="color:${c.grijs};font-size:10px;cursor:grab;margin-right:2px" data-noprint>\u2261</span>
       <span class="badge badge-lg">${esc(type.short||'?')}</span>
-      <span style="font-size:14px;font-weight:600;flex:1;color:${c.txtPrimary}">${esc(type.label||'Naamloos')}</span>
+      <span class="cat-label">${esc(type.label||'Naamloos')}</span>
       <button data-noprint title="Type bewerken" class="btn-icon" data-action="editDevType" data-id="${type.id}">\u270E</button>
     </div>`;
+    html += '<div class="cat-items">';
     td.forEach(dev => {
       const isSel = selectedDev === dev.id;
       const cnt = objToArr(STATE.data.matches).filter(m => matchDevIds(m).has(dev.id)).length;
@@ -871,14 +881,14 @@ function renderDevsPanel(c, devs, dts, matches) {
         </div>
       </div>`;
     });
-    if (td.length === 0) html += '<div style="margin-left:28px;font-size:10px;color:'+c.zachtgrijs+';font-style:italic">Geen</div>';
-    html += '</div>';
+    if (td.length === 0) html += '<div style="padding:6px 10px;font-size:10px;color:'+c.grijs+';font-style:italic">Geen</div>';
+    html += '</div></div>'; // cat-items + cat-group
   });
 
   // Geen categorie
   const uncatDevs = devs.filter(d => !dts.find(t => t.id === d.tid));
   if (uncatDevs.length > 0) {
-    html += '<div style="margin-bottom:14px"><div style="font-size:10px;color:'+c.grijs+';font-style:italic;margin-bottom:4px">Geen categorie</div>';
+    html += '<div class="cat-group"><div class="cat-header" style="cursor:default"><span class="cat-label" style="font-style:italic;font-weight:400;color:'+c.grijs+'">Geen categorie</span></div><div class="cat-items">';
     uncatDevs.forEach(dev => {
       const isSel = selectedDev === dev.id;
       const cnt = objToArr(STATE.data.matches).filter(m => matchDevIds(m).has(dev.id)).length;
@@ -891,7 +901,7 @@ function renderDevsPanel(c, devs, dts, matches) {
         <button data-noprint class="btn-xs" style="background:${c.lichtgrijs};border:none;cursor:pointer;font-size:11px;color:${c.grijs};border-radius:3px;font-family:inherit" data-action="editDev" data-id="${dev.id}" title="Ontwikkelaar bewerken">\u270E</button>
       </div>`;
     });
-    html += '</div>';
+    html += '</div></div>'; // cat-items + cat-group
   }
 
   html += '<button data-noprint title="Nieuw ontwikkelaar-type toevoegen" class="btn btn-grey btn-sm btn-full" data-action="addDevType">+ Categorie</button>';
@@ -923,15 +933,16 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
     const searchK = STATE.ui.searchKansen.toLowerCase();
     const ck = unmatched.filter(k => k.cid === cat.id && (!searchK || (k.name||'').toLowerCase().includes(searchK) || (k.adres||'').toLowerCase().includes(searchK) || (k.type||'').toLowerCase().includes(searchK))).sort((a,b) => (a.so||0) - (b.so||0));
     const allCatFolded = ck.length > 0 && ck.every(k => STATE.ui.collapsedKansen[k.id]);
-    html += `<div style="margin-bottom:16px" data-kanscat-group="${cat.id}">`;
-    html += `<div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;cursor:grab" draggable="true" data-drag-type="kansCat" data-drag-id="${cat.id}">`;
+    html += `<div class="cat-group" data-kanscat-group="${cat.id}">`;
+    html += `<div class="cat-header" draggable="true" data-drag-type="kansCat" data-drag-id="${cat.id}">`;
     html += `<span style="color:${c.grijs};font-size:10px;cursor:grab;margin-right:2px" data-noprint>\u2261</span>`;
     if (ck.length > 0) {
       html += `<span style="font-size:14px;color:${c.grijs};cursor:pointer" data-action="collapseCatKansen" data-id="${cat.id}">${allCatFolded?'\u25B8':'\u25BE'}</span>`;
     }
-    html += `<span style="font-size:14px;font-weight:600;flex:1;color:${c.txtPrimary}">${esc(cat.label||'Naamloos')}</span>`;
+    html += `<span class="cat-label">${esc(cat.label||'Naamloos')}</span>`;
     html += `<button data-noprint title="Categorie bewerken" class="btn-icon" data-action="editKansCat" data-id="${cat.id}">\u270E</button>`;
     html += '</div>';
+    html += '<div class="cat-items">';
 
     ck.forEach(kans => {
       const isKC = STATE.ui.collapsedKansen[kans.id];
@@ -957,14 +968,14 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
       html += '</div>';
     });
 
-    if (ck.length === 0) html += `<div style="font-size:10px;color:${c.zachtgrijs};font-style:italic">Geen kansen</div>`;
-    html += '</div>';
+    if (ck.length === 0) html += `<div style="padding:6px 10px;font-size:10px;color:${c.grijs};font-style:italic">Geen kansen</div>`;
+    html += '</div></div>'; // cat-items + cat-group
   });
 
   // Geen categorie
   const uncatK = unmatched.filter(k => !kcs.find(cat => cat.id === k.cid));
   if (uncatK.length > 0) {
-    html += `<div style="margin-bottom:14px"><div style="font-size:12px;color:${c.grijs};font-style:italic;margin-bottom:4px">Geen categorie</div>`;
+    html += `<div class="cat-group"><div class="cat-header" style="cursor:default"><span class="cat-label" style="font-style:italic;font-weight:400;color:${c.grijs}">Geen categorie</span></div><div class="cat-items">`;
     uncatK.forEach(kans => {
       const isKC = STATE.ui.collapsedKansen[kans.id];
       const mp = mapsUrl(kans.adres);
@@ -984,7 +995,7 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
       }
       html += '</div>';
     });
-    html += '</div>';
+    html += '</div></div>'; // cat-items + cat-group
   }
 
   html += '<button data-noprint title="Nieuwe kans-categorie toevoegen" class="btn btn-grey btn-sm btn-full" data-action="addKansCat">+ Categorie</button>';
