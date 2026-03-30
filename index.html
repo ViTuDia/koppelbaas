@@ -790,7 +790,6 @@ function renderHeader(c, devs, kansen, matches, alarms) {
       <div><div class="header-title-label">Acquisitie</div><div class="header-title-name">De Koppelbaas</div></div>
     </div>
     <div class="header-right">
-      <span class="conn-dot" title="${STATE.ui.connected?'Verbonden met Firebase':'Geen verbinding'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'}"></span>
       <div class="header-stat"><div class="header-stat-val">${devs.length}</div><div class="header-stat-lbl">devs</div></div>
       <div class="header-stat"><div class="header-stat-val">${kansen.length}</div><div class="header-stat-lbl">kansen</div></div>
       <div class="header-stat"><div class="header-stat-val">${matches.length}</div><div class="header-stat-lbl">matches</div></div>
@@ -1173,7 +1172,7 @@ function renderMatchCard(c, match, stage, devs, dts) {
 
 function renderFooter(c) {
   return `<div class="footer">
-    <span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
+    <span><span class="conn-dot" title="${STATE.ui.connected?'Verbonden':'Geen verbinding'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'}"></span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
     <span>Willem Buytewechstraat 45, Rotterdam</span>
   </div>`;
 }
