@@ -848,7 +848,6 @@ function renderDevsPanel(c, devs, dts, matches) {
     const td = devs.filter(d => d.tid === type.id && (!searchD || (d.name||'').toLowerCase().includes(searchD) || (d.schaal||'').toLowerCase().includes(searchD))).sort((a,b) => (a.so||0) - (b.so||0));
     html += `<div class="cat-group" data-devtype-group="${type.id}">`;
     html += `<div class="cat-header" draggable="true" data-drag-type="devType" data-drag-id="${type.id}">
-      <span style="color:${c.grijs};font-size:10px;cursor:grab;margin-right:2px" data-noprint>\u2261</span>
       <span class="badge badge-lg">${esc(type.short||'?')}</span>
       <span class="cat-label">${esc(type.label||'Naamloos')}</span>
       <button data-noprint title="Type bewerken" class="btn-icon" data-action="editDevType" data-id="${type.id}">\u270E</button>
