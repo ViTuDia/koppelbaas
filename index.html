@@ -57,12 +57,15 @@
     .sel-bar-name { font-size: 14px; }
     .sel-bar-slash { color: var(--geel); font-weight: 500; }
 
-    .left-panels { width: 500px; flex-shrink: 0; display: flex; border-right: 2px solid var(--zachtgrijs); }
-    .panel { width: 250px; background: var(--panelBg); overflow-y: auto; padding: 14px 10px; }
+    .left-panels { width: 500px; flex-shrink: 0; display: flex; }
+    .panel { width: 50%; background: var(--panelBg); overflow-y: auto; padding: 14px 10px; }
     .panel:first-child { border-right: 1px solid var(--zachtgrijs); }
     .panel-title { font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
     .panel-sub { font-size: 10px; color: var(--txtSecondary); margin-bottom: 12px; font-weight: 300; }
     .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+
+    .resize-handle { width: 5px; flex-shrink: 0; background: var(--zachtgrijs); cursor: col-resize; position: relative; z-index: 10; transition: background 0.15s; }
+    .resize-handle:hover, .resize-handle.active { background: var(--geel); }
 
     .pipeline { flex: 1; overflow-x: auto; display: flex; }
     .pipe-col { flex: 1; min-width: 200px; display: flex; flex-direction: column; border-right: 1px solid var(--zachtgrijs); }
@@ -163,6 +166,7 @@
       .left-panels { overflow: visible !important; height: auto !important; width: 500px !important; flex-shrink: 0 !important; }
       .panel { overflow: visible !important; height: auto !important; }
       .pipeline { overflow: visible !important; flex: 1 !important; }
+      .resize-handle { display: none !important; }
       .pipe-col { overflow: visible !important; height: auto !important; }
       .pipe-col-body { overflow: visible !important; padding-bottom: 8px !important; height: auto !important; }
       .header { padding: 8px 16px !important; }
@@ -267,6 +271,7 @@
       /* Verberg drag-gerelateerde elementen op mobiel */
       [draggable="true"] { -webkit-user-drag: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
       .drop-zone-active { display: none; }
+      .resize-handle { display: none; }
 
       /* iOS Safari: cursor:pointer nodig voor click-delegatie op niet-native elementen */
       [data-action] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
@@ -701,10 +706,11 @@ function render() {
   html += renderHeader(c, devs, kansen, matches, alarms);
   html += renderSelectionBar(c, selName, matches, unmatched);
   html += '<div class="main">';
-  html += '<div class="left-panels">';
+  html += '<div class="left-panels" id="left-panels">';
   html += renderDevsPanel(c, devs, dts, matches);
   html += renderKansenPanel(c, unmatched, kcs, matches);
   html += '</div>';
+  html += '<div class="resize-handle" id="resize-handle"></div>';
   html += renderPipeline(c, matches, kansen, devs, dts);
   html += '</div>';
   html += renderFooter(c);
@@ -1629,6 +1635,60 @@ KB.mfStage = function(newStage) {
 
 // ─── EVENTS (placeholder) ────────────────────────
 function setupEventListeners() {
+  // ─── Resize handle (versleep scheidslijn links/rechts) ───
+  let resizing = false;
+  function initResize() {
+    document.body.addEventListener('mousedown', e => {
+      if (!e.target.closest('#resize-handle')) return;
+      resizing = true;
+      e.target.closest('#resize-handle').classList.add('active');
+      e.preventDefault();
+    });
+    document.body.addEventListener('mousemove', e => {
+      if (!resizing) return;
+      e.preventDefault();
+      const lp = document.getElementById('left-panels');
+      if (!lp) return;
+      const mainRect = lp.parentElement.getBoundingClientRect();
+      const newWidth = Math.max(200, Math.min(e.clientX - mainRect.left, mainRect.width - 300));
+      lp.style.width = newWidth + 'px';
+    });
+    document.body.addEventListener('mouseup', () => {
+      if (resizing) {
+        resizing = false;
+        const h = document.getElementById('resize-handle');
+        if (h) h.classList.remove('active');
+      }
+    });
+    // Touch support
+    let resizeTouchId = null;
+    document.body.addEventListener('touchstart', e => {
+      if (!e.target.closest('#resize-handle')) return;
+      resizeTouchId = e.touches[0].identifier;
+      const h = e.target.closest('#resize-handle');
+      if (h) h.classList.add('active');
+    }, {passive: true});
+    document.body.addEventListener('touchmove', e => {
+      if (resizeTouchId === null) return;
+      const touch = Array.from(e.touches).find(t => t.identifier === resizeTouchId);
+      if (!touch) return;
+      e.preventDefault();
+      const lp = document.getElementById('left-panels');
+      if (!lp) return;
+      const mainRect = lp.parentElement.getBoundingClientRect();
+      const newWidth = Math.max(200, Math.min(touch.clientX - mainRect.left, mainRect.width - 300));
+      lp.style.width = newWidth + 'px';
+    }, {passive: false});
+    document.body.addEventListener('touchend', e => {
+      if (resizeTouchId !== null) {
+        resizeTouchId = null;
+        const h = document.getElementById('resize-handle');
+        if (h) h.classList.remove('active');
+      }
+    });
+  }
+  initResize();
+
   // ─── Escape sluit modals ───
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && STATE.ui.modal) {
