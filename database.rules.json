@@ -1,10 +1,8 @@
 {
   "rules": {
     "meta": {
-      "passwordHash": {
-        ".read": true,
-        ".write": true
-      }
+      ".read": true,
+      ".write": true
     },
     "devTypes": { ".read": true, ".write": true },
     "kansCats": { ".read": true, ".write": true },
