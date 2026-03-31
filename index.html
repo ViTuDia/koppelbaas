@@ -1055,7 +1055,8 @@ function renderPipeline(c, matches, kansen, devs, dts) {
     });
 
     if (sm.length === 0) {
-      html += `<div class="empty-col-msg">Nog geen matches.<br>Sleep een kans hierheen${stage.addLabel ? ' of klik +' : ''}.</div>`;
+      const emptyLabels = {matches:'potentiële matches',verkennend:'verkennende gesprekken',offerte:'offertetrajecten',actief:'lopend werk'};
+      html += `<div class="empty-col-msg">Nog geen ${emptyLabels[stage.id]||'items'}.<br>Sleep een kans hierheen${stage.addLabel ? ' of klik +' : ''}.</div>`;
     }
     // Toevoeg-knop
     if (stage.addLabel) {
