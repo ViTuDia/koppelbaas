@@ -2321,25 +2321,36 @@ function setupEventListeners() {
     if (!targetEl) return;
     const dropTarget = findDropTargetAt(targetEl);
     if (dropTarget && dropTarget.dataset.dragId !== dragSrcId && wouldChangePosition(targetEl, clientY)) {
-      const tid = dropTarget.dataset.dragId;
+      let indicatorParent;
+      if (dragType === 'devType') indicatorParent = dropTarget.closest('[data-devtype-group]');
+      else if (dragType === 'kansCat' || dragType === 'kans') indicatorParent = dropTarget.closest('[data-kanscat-group]');
+      else if (dragType === 'dev') indicatorParent = dropTarget.closest('[data-drag-type="dev"]') || dropTarget;
+      else indicatorParent = dropTarget;
+      if (!indicatorParent) { if (lastIndicatorId) clearDragIndicators(); return; }
+
+      const rect = indicatorParent.getBoundingClientRect();
+
+      // Dead zone voor match-kaarten: alleen indicator tonen als cursor in bovenste/onderste 30% is
+      if (dragType === 'match' && rect.height > 50) {
+        const edgeZone = rect.height * 0.3;
+        if (clientY > rect.top + edgeZone && clientY < rect.bottom - edgeZone) {
+          if (lastIndicatorId) clearDragIndicators();
+          return;
+        }
+      }
+
+      const midY = rect.top + rect.height / 2;
+      const pos = clientY < midY ? 'before' : 'after';
+      const tid = dropTarget.dataset.dragId + ':' + pos;
       if (tid !== lastIndicatorId) {
         clearDragIndicators();
         lastIndicatorId = tid;
-        let indicatorParent;
-        if (dragType === 'devType') indicatorParent = dropTarget.closest('[data-devtype-group]');
-        else if (dragType === 'kansCat' || dragType === 'kans') indicatorParent = dropTarget.closest('[data-kanscat-group]');
-        else if (dragType === 'dev') indicatorParent = dropTarget.closest('[data-drag-type="dev"]') || dropTarget;
-        else indicatorParent = dropTarget;
-        if (indicatorParent) {
-          const rect = indicatorParent.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          const indicator = document.createElement('div');
-          indicator.className = 'drag-indicator';
-          if (clientY < midY) {
-            indicatorParent.parentNode.insertBefore(indicator, indicatorParent);
-          } else {
-            indicatorParent.parentNode.insertBefore(indicator, indicatorParent.nextSibling);
-          }
+        const indicator = document.createElement('div');
+        indicator.className = 'drag-indicator';
+        if (pos === 'before') {
+          indicatorParent.parentNode.insertBefore(indicator, indicatorParent);
+        } else {
+          indicatorParent.parentNode.insertBefore(indicator, indicatorParent.nextSibling);
         }
       }
     } else if (lastIndicatorId) {
