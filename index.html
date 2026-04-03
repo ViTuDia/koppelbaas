@@ -113,7 +113,7 @@
 
     /* Drop zone */
     .drop-zone-active { padding: 10px; border: 2px dashed var(--geel); border-radius: 6px; text-align: center; color: var(--geel); font-size: 12px; font-weight: 500; margin-bottom: 10px; }
-    .drag-indicator { height: 3px; background: var(--geel); border-radius: 2px; margin: 2px 0; transition: opacity 0.1s; }
+    .drag-indicator { height: 3px; background: var(--geel); border-radius: 2px; margin: 2px 0; transition: opacity 0.1s; pointer-events: none; }
 
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: var(--modalOverlay); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -895,7 +895,7 @@ function renderDevsPanel(c, devs, dts, matches) {
         </div>
       </div>`;
     });
-    if (td.length === 0) html += '<div style="padding:6px 10px;font-size:10px;color:'+c.grijs+';font-style:italic">Geen</div>';
+    if (td.length === 0) html += '<div data-empty style="padding:6px 10px;font-size:10px;color:'+c.grijs+';font-style:italic;pointer-events:none">Geen</div>';
     html += '</div></div>'; // cat-items + cat-group
   });
 
@@ -981,7 +981,7 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
       html += '</div>';
     });
 
-    if (ck.length === 0) html += `<div style="padding:6px 10px;font-size:10px;color:${c.grijs};font-style:italic">Geen kansen</div>`;
+    if (ck.length === 0) html += `<div data-empty style="padding:6px 10px;font-size:10px;color:${c.grijs};font-style:italic;pointer-events:none">Geen kansen</div>`;
     html += '</div></div>'; // cat-items + cat-group
   });
 
@@ -2352,7 +2352,14 @@ function setupEventListeners() {
           indicatorParent = grp ? grp.querySelector('.cat-items') : null;
         }
       }
-      else if (dragType === 'dev') indicatorParent = dropTarget.closest('[data-drag-type="dev"]') || dropTarget;
+      else if (dragType === 'dev') {
+        const devEl = dropTarget.closest('[data-drag-type="dev"]');
+        if (devEl) indicatorParent = devEl;
+        else {
+          const grp = dropTarget.closest('[data-devtype-group]');
+          indicatorParent = grp ? grp.querySelector('.cat-items') : null;
+        }
+      }
       else indicatorParent = dropTarget;
       if (!indicatorParent) { if (lastIndicatorId) clearDragIndicators(); return; }
 
@@ -2375,8 +2382,8 @@ function setupEventListeners() {
         lastIndicatorId = tid;
         const indicator = document.createElement('div');
         indicator.className = 'drag-indicator';
-        if (dragType === 'kans' && indicatorParent.classList.contains('cat-items')) {
-          // Kans naar andere categorie: indicator binnen cat-items container
+        if (indicatorParent.classList.contains('cat-items')) {
+          // Dev/kans naar categorie: indicator binnen cat-items container
           if (pos === 'before') {
             indicatorParent.insertBefore(indicator, indicatorParent.firstChild);
           } else {
