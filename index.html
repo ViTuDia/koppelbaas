@@ -2206,11 +2206,13 @@ function setupEventListeners() {
   // ─── Drag & Drop ───
   let dragType = null, dragSrcId = null;
   let lastIndicatorId = null;
+  let resolvedDropPos = null; // {pos: 'before'|'after', targetId: string, refEl: Element}
 
   const dragInd = document.getElementById('drag-indicator');
   function clearDragIndicators() {
     dragInd.style.display = 'none';
     lastIndicatorId = null;
+    resolvedDropPos = null;
   }
 
   function findDropTargetAt(el) {
@@ -2405,6 +2407,9 @@ function setupEventListeners() {
       }
     }
 
+    // Sla resolved positie op voor executeDrop
+    resolvedDropPos = { pos, refEl };
+
     const tid = dropTarget.dataset.dragId + ':' + pos;
     if (tid !== lastIndicatorId) {
       lastIndicatorId = tid;
@@ -2434,6 +2439,15 @@ function setupEventListeners() {
     }
   }
 
+  // Gebruik resolved indicator-positie als die beschikbaar is, anders clientY
+  function resolveInsertAfter(el, clientY) {
+    if (resolvedDropPos && resolvedDropPos.refEl === el) {
+      return resolvedDropPos.pos === 'after';
+    }
+    const rect = el.getBoundingClientRect();
+    return clientY > rect.top + rect.height / 2;
+  }
+
   // Gedeelde drop-logica (gebruikt door HTML5 drop EN touch drop)
   function executeDrop(data, targetEl, clientY) {
     // DevType reorder
@@ -2445,8 +2459,7 @@ function setupEventListeners() {
         const fromIdx = dts.findIndex(t => t.id === data.id);
         const targetIdx = dts.findIndex(t => t.id === targetId);
         if (fromIdx >= 0 && targetIdx >= 0) {
-          const rect = grp.getBoundingClientRect();
-          const insertAfter = clientY > rect.top + rect.height / 2;
+          const insertAfter = resolveInsertAfter(grp, clientY);
           let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
           if (fromIdx < toIdx) toIdx--;
           if (fromIdx !== toIdx) {
@@ -2469,8 +2482,7 @@ function setupEventListeners() {
         const fromIdx = kcs.findIndex(c => c.id === data.id);
         const targetIdx = kcs.findIndex(c => c.id === targetId);
         if (fromIdx >= 0 && targetIdx >= 0) {
-          const rect = grp.getBoundingClientRect();
-          const insertAfter = clientY > rect.top + rect.height / 2;
+          const insertAfter = resolveInsertAfter(grp, clientY);
           let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
           if (fromIdx < toIdx) toIdx--;
           if (fromIdx !== toIdx) {
@@ -2500,11 +2512,9 @@ function setupEventListeners() {
         if (targetKans) {
           const targetIdx = tk.findIndex(k => k.id === targetKans.dataset.dragId);
           if (targetIdx >= 0) {
-            const rect = targetKans.getBoundingClientRect();
-            newSo = clientY < rect.top + rect.height / 2 ? targetIdx : targetIdx + 1;
+            newSo = resolveInsertAfter(targetKans, clientY) ? targetIdx + 1 : targetIdx;
           }
         }
-        // Hernum bestaande items om ruimte te maken
         const updates = {};
         tk.forEach((k, i) => { const so = i >= newSo ? i + 1 : i; updates[`kansen/${k.id}/so`] = so; });
         updates[`kansen/${data.id}/cid`] = newCid;
@@ -2519,8 +2529,7 @@ function setupEventListeners() {
         const fromIdx = tk.findIndex(k => k.id === data.id);
         const targetIdx = tk.findIndex(k => k.id === targetKans.dataset.dragId);
         if (fromIdx >= 0 && targetIdx >= 0) {
-          const rect = targetKans.getBoundingClientRect();
-          const insertAfter = clientY > rect.top + rect.height / 2;
+          const insertAfter = resolveInsertAfter(targetKans, clientY);
           let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
           if (fromIdx < toIdx) toIdx--;
           if (fromIdx !== toIdx) {
@@ -2550,11 +2559,9 @@ function setupEventListeners() {
         if (targetDev) {
           const targetIdx = td.findIndex(d => d.id === targetDev.dataset.dragId);
           if (targetIdx >= 0) {
-            const rect = targetDev.getBoundingClientRect();
-            newSo = clientY < rect.top + rect.height / 2 ? targetIdx : targetIdx + 1;
+            newSo = resolveInsertAfter(targetDev, clientY) ? targetIdx + 1 : targetIdx;
           }
         }
-        // Hernum bestaande items om ruimte te maken
         const updates = {};
         td.forEach((d, i) => { const so = i >= newSo ? i + 1 : i; updates[`devs/${d.id}/so`] = so; });
         updates[`devs/${data.id}/tid`] = newTid;
@@ -2569,8 +2576,7 @@ function setupEventListeners() {
         const fromIdx = td.findIndex(d => d.id === data.id);
         const targetIdx = td.findIndex(d => d.id === targetDev.dataset.dragId);
         if (fromIdx >= 0 && targetIdx >= 0) {
-          const rect = targetDev.getBoundingClientRect();
-          const insertAfter = clientY > rect.top + rect.height / 2;
+          const insertAfter = resolveInsertAfter(targetDev, clientY);
           let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
           if (fromIdx < toIdx) toIdx--;
           if (fromIdx !== toIdx) {
@@ -2604,8 +2610,7 @@ function setupEventListeners() {
           const fromIdx = sm.findIndex(x => x.id === data.id);
           const targetIdx = sm.findIndex(x => x.id === targetCard.dataset.dragId);
           if (fromIdx >= 0 && targetIdx >= 0) {
-            const rect = targetCard.getBoundingClientRect();
-            const insertAfter = clientY > rect.top + rect.height / 2;
+            const insertAfter = resolveInsertAfter(targetCard, clientY);
             let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
             if (fromIdx < toIdx) toIdx--;
             if (fromIdx !== toIdx) {
