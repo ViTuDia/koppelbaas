@@ -834,6 +834,7 @@ function renderHeader(c, devs, kansen, matches, alarms) {
       <button data-noprint title="Bekijk alerts" class="btn header-btn" style="background:${al>0?c.rood:(STATE.ui.dark?'#444':'#000')}" data-action="showAlerts"><span class="header-icon">\u26A0</span> ${al} alert${al!==1?'s':''}</button>
       <button data-noprint title="${STATE.ui.dark?'Licht thema':'Donker thema'}" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="toggleDark"><span class="header-icon">${STATE.ui.dark?'\u2600':'\u263E'}</span></button>
       <button data-noprint title="Print het board" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="print"><span class="header-icon">\uD83D\uDDA8</span></button>
+      <button data-noprint title="Help" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="showHelp"><span class="header-icon">?</span></button>
       <button data-noprint title="Admin instellingen" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="showAdmin"><span class="header-icon">\u2699</span></button>
     </div>
   </div>`;
@@ -1251,6 +1252,7 @@ function renderModal() {
     case 'alerts': { w=500; title=`Alerts (${getAlarms().length})`; body = renderAlertsModal(c); break; }
     case 'stageGate': { w=400; title=modalExtra?.q||'Bevestigen'; body = renderStageGateModal(c); break; }
     case 'admin': { w=440; title='\u2699 Admin'; body = renderAdminModal(c); break; }
+    case 'help': { w=540; title='? Help'; body = renderHelpModal(c); break; }
   }
 
   html += `<div class="modal" style="max-width:${w}px" data-action="modalBody">`;
@@ -1535,6 +1537,112 @@ function renderStageGateModal(c) {
     </div>`;
 }
 
+function renderHelpModal(c) {
+  const q = (STATE.ui.modalData?.helpSearch || '').toLowerCase();
+  const chapters = [
+    {id:'overzicht', title:'Overzicht', body:`
+      <b>De Koppelbaas</b> is het acquisitie-dashboard van ARD / AtelierRuimDenkers. Het koppelt <b>ontwikkelaars</b> aan <b>kansen</b> (vastgoedprojecten) tot <b>matches</b> die door een kanban-pipeline bewegen.<br><br>
+      Het scherm heeft drie delen:<br>
+      \u2022 <b>Links</b>: ontwikkelaars-paneel en kansen-paneel<br>
+      \u2022 <b>Rechts</b>: de pipeline met 4 fases<br>
+      \u2022 <b>Header</b>: statistieken, alerts, instellingen`},
+    {id:'devs', title:'Ontwikkelaars', body:`
+      Het linkerpaneel toont alle ontwikkelaars, gegroepeerd per type (Puur sang, Ontw. bouwer, Investeerder, etc.).<br><br>
+      \u2022 <b>Toevoegen</b>: klik de <b>+</b> knop naast "Ontwikkelaars"<br>
+      \u2022 <b>Bewerken</b>: dubbelklik op een ontwikkelaar<br>
+      \u2022 <b>Selecteren</b>: klik op een ontwikkelaar \u2192 pipeline markeert alle matches waar die dev in zit<br>
+      \u2022 <b>Categorieën</b>: klik op het potloodje naast een type om te bewerken. Categorieën zijn versleepbaar om de volgorde te wijzigen<br>
+      \u2022 <b>Badge</b>: het getal achter een ontwikkelaar toont in hoeveel matches die voorkomt`},
+    {id:'kansen', title:'Kansen', body:`
+      Het rechter zijpaneel toont alle <b>ongematchte</b> kansen (die nog niet in de pipeline staan), gegroepeerd per gebied.<br><br>
+      \u2022 <b>Toevoegen</b>: klik de <b>+</b> knop naast "Kansen"<br>
+      \u2022 <b>Bewerken</b>: dubbelklik op een kans<br>
+      \u2022 <b>BVO</b>: bruto vloeroppervlak in m\u00B2, wordt gebruikt als basis voor honorariumberekening<br>
+      \u2022 <b>Match maken</b>: sleep een kans naar een pipeline-kolom \u2192 kies ontwikkelaar(s) \u2192 match aangemaakt`},
+    {id:'pipeline', title:'Pipeline (4 fases)', body:`
+      De pipeline heeft 4 fases, van links naar rechts:<br><br>
+      <b>1. Potentiële matches</b> \u2014 eerste verkenning, nog vrijblijvend<br>
+      <b>2. Verkennende gesprekken</b> \u2014 concrete gesprekken, min. 2 koppelingen nodig<br>
+      <b>3. Offertetraject</b> \u2014 er wordt een offerte gemaakt, min. 2 koppelingen<br>
+      <b>4. Lopend werk</b> \u2014 opdracht is binnen, min. 2 koppelingen<br><br>
+      Kaarten verplaatsen: sleep een kaart naar een andere kolom. Bij verplaatsing naar een verdere fase verschijnt een bevestigingsvenster.<br>
+      <b>Vergrendelen</b>: klik het slotje om een kaart vast te zetten in de huidige kolom.`},
+    {id:'matches', title:'Matches maken en bewerken', body:`
+      Een match koppelt een kans aan één of meer ontwikkelaars.<br><br>
+      <b>Match aanmaken:</b><br>
+      \u2022 Sleep een kans uit het kansen-paneel naar een pipeline-kolom<br>
+      \u2022 Of klik de <b>+ Nieuwe match</b> knop onderaan een kolom<br><br>
+      <b>Match bewerken:</b><br>
+      \u2022 Dubbelklik op een match-kaart<br>
+      \u2022 In het bewerkscherm: notitie, fase, ontwikkelaars aan/uit vinken<br>
+      \u2022 Ontwikkelaars in een coalitie staan gemarkeerd met "coalitie"<br><br>
+      <b>Selectie:</b> klik op een match-kaart \u2192 het ontwikkelaars-paneel markeert de gekoppelde devs.`},
+    {id:'coalities', title:'Coalities', body:`
+      Een coalitie is een groep ontwikkelaars die samen als één partij optreden.<br><br>
+      \u2022 Open een match (dubbelklik) \u2192 klik <b>+ Coalitie</b><br>
+      \u2022 Vink de deelnemers aan \u2192 klik Opslaan<br>
+      \u2022 Coalities tellen als 1 koppeling (ook al zitten er 3 devs in)<br>
+      \u2022 Een dev in een coalitie kan niet los ontkoppeld worden \u2014 bewerk of verwijder de coalitie`},
+    {id:'financieel', title:'Financieel', body:`
+      Per match kun je het verwachte honorarium bijhouden.<br><br>
+      <b>Handmatig:</b> vul BVO (m\u00B2) en Honorarium (\u20AC) direct in bij het bewerken van een match.<br><br>
+      <b>Calculator:</b> klik op "\uD83D\uDCB0 Honorariumcalculator" in het bewerkscherm:<br>
+      \u2022 Vul bouwkosten/m\u00B2 en honorarium% in (of gebruik de bureau-standaarden)<br>
+      \u2022 Formule: BVO \u00D7 bouwkosten/m\u00B2 \u00D7 honorarium% = honorarium<br>
+      \u2022 Het resultaat vult het honorariumveld automatisch in<br><br>
+      <b>Gewogen pipeline:</b><br>
+      \u2022 Elke fase heeft een conversiepercentage (instelbaar in Admin)<br>
+      \u2022 Standaard: Matches 10%, Verkennend 25%, Offerte 50%, Actief 100%<br>
+      \u2022 De header toont het totaal verwachte honorarium<br>
+      \u2022 Per kolom: totaal honorarium en gewogen waarde<br>
+      \u2022 \uD83D\uDCB0 op een kaart = honorarium ingevuld. <span style="position:relative;display:inline-block">\uD83D\uDCB0<span style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:${c.rood};transform:rotate(-45deg)"></span></span> = nog niet ingevuld`},
+    {id:'alerts', title:'Alerts', body:`
+      Het alert-systeem waarschuwt als matches te weinig koppelingen hebben.<br><br>
+      \u2022 <b>Rood</b>: geen enkele koppeling \u2014 de match heeft niemand<br>
+      \u2022 <b>Oranje</b>: te weinig koppelingen (bijv. 1 waar er 2 nodig zijn)<br>
+      \u2022 <b>Groen</b>: voldoende koppelingen<br><br>
+      De alert-knop in de header toont het aantal waarschuwingen. Klik erop voor een overzicht met directe links naar de matches.`},
+    {id:'instellingen', title:'Instellingen (Admin)', body:`
+      Klik het tandwiel \u2699 rechtsboven om bij de instellingen te komen:<br><br>
+      \u2022 <b>Wachtwoord wijzigen</b>: voor de login van de app<br>
+      \u2022 <b>Conversiepercentages</b>: per fase het verwachte slagingspercentage instellen<br>
+      \u2022 <b>Honorarium standaarden</b>: bureau-brede bouwkosten/m\u00B2 en honorarium% (worden gebruikt als default in de calculator)<br>
+      \u2022 <b>Backup</b>: download alle data als JSON, of herstel vanuit een backup<br>
+      \u2022 <b>Uitloggen</b>: sessie beëindigen`},
+    {id:'mobiel', title:'Mobiel gebruik', body:`
+      Op telefoon/tablet schakelt de app over naar een tab-indeling:<br><br>
+      \u2022 <b>Devs</b> / <b>Kansen</b> / <b>Pipeline</b> tabs onderaan het scherm<br>
+      \u2022 In de pipeline: bovenaan stage-tabs om tussen fases te wisselen<br>
+      \u2022 Drag & drop werkt met <b>lang indrukken</b> (200ms) en dan slepen<br>
+      \u2022 Kaarten verplaatsen kan ook via de <b>move-knoppen</b> die onder uitgeklapte kaarten verschijnen<br>
+      \u2022 Dubbelklik werkt gewoon voor bewerken`},
+    {id:'tips', title:'Tips & sneltoetsen', body:`
+      \u2022 <b>Escape</b>: sluit het actieve venster<br>
+      \u2022 <b>Dubbelklik</b>: bewerk een ontwikkelaar, kans of match<br>
+      \u2022 <b>Zoekbalken</b>: type in de zoekbalk boven het dev- of kansen-paneel om te filteren<br>
+      \u2022 <b>Resize</b>: sleep de scheidslijn tussen panelen en pipeline om de breedte aan te passen<br>
+      \u2022 <b>Dark mode</b>: klik het zon/maan-icoontje<br>
+      \u2022 <b>Printen</b>: klik het printer-icoontje voor een landscape-afdruk van het hele bord`}
+  ];
+  const filtered = q ? chapters.filter(ch => ch.title.toLowerCase().includes(q) || ch.body.toLowerCase().includes(q)) : chapters;
+  const open = STATE.ui.modalData?.helpOpen || {};
+  let html = `<div style="margin-bottom:12px"><input class="panel-search" style="width:100%;padding:8px 10px;border:1px solid ${c.zachtgrijs};border-radius:4px;font-size:13px;font-family:inherit;background:${c.kaart};color:${c.txtPrimary}" placeholder="Zoek in help\u2026" value="${esc(q)}" oninput="KB.helpSearch(this.value)"></div>`;
+  if (filtered.length === 0) {
+    html += `<div style="font-size:12px;color:${c.grijs};padding:10px;font-weight:300">Geen resultaten voor "${esc(q)}".</div>`;
+  }
+  filtered.forEach(ch => {
+    const isOpen = open[ch.id] || (q && filtered.length <= 3);
+    html += `<div style="border:1px solid ${c.zachtgrijs};border-radius:4px;margin-bottom:6px;overflow:hidden">`;
+    html += `<div style="padding:8px 12px;background:${c.lichtgrijs};cursor:pointer;display:flex;justify-content:space-between;align-items:center" data-action="toggleHelpChapter" data-id="${ch.id}">
+      <span style="font-size:13px;font-weight:500">${esc(ch.title)}</span><span style="font-size:10px;color:${c.grijs}">${isOpen?'\u25B2':'\u25BC'}</span></div>`;
+    if (isOpen) {
+      html += `<div style="padding:10px 12px;font-size:12px;line-height:1.7;color:${c.txtPrimary};font-weight:300">${ch.body}</div>`;
+    }
+    html += '</div>';
+  });
+  return html;
+}
+
 function renderAdminModal(c) {
   const d = STATE.ui.modalData || {};
   const pwMsg = d.pwMsg || '';
@@ -1653,6 +1761,13 @@ KB.importBackup = async function(file) {
 };
 
 // Calculator field helper — herbereken omzet/honorarium bij wijziging
+KB.helpSearch = function(val) {
+  const md = STATE.ui.modalData; if (!md) return;
+  md.helpSearch = val;
+  renderModal();
+  const inp = document.querySelector('.modal-body .panel-search');
+  if (inp) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch(e) {} }
+};
 KB.mfCalc = function(field, value) {
   const md = STATE.ui.modalData; if (!md) return;
   md[field] = value;
@@ -1914,6 +2029,15 @@ function setupEventListeners() {
       case 'showAlerts':
         STATE.ui.modal = 'alerts'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
         renderModal(); break;
+      case 'showHelp':
+        STATE.ui.modal = 'help'; STATE.ui.modalData = {helpSearch:'',helpOpen:{}}; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      case 'toggleHelpChapter': {
+        const md = STATE.ui.modalData; if (!md) break;
+        if (!md.helpOpen) md.helpOpen = {};
+        md.helpOpen[id] = !md.helpOpen[id];
+        renderModal(); break;
+      }
       case 'showAdmin':
         STATE.ui.modal = 'admin'; STATE.ui.modalData = {oldPw:'',newPw:'',newPw2:'',pwMsg:'',pwOk:false,
           pct_matches:stagePct('matches'),pct_verkennend:stagePct('verkennend'),pct_offerte:stagePct('offerte'),pct_actief:stagePct('actief'),pctMsg:'',pctOk:false,
