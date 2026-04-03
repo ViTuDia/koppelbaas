@@ -113,9 +113,7 @@
 
     /* Drop zone */
     .drop-zone-active { padding: 10px; border: 2px dashed var(--geel); border-radius: 6px; text-align: center; color: var(--geel); font-size: 12px; font-weight: 500; margin-bottom: 10px; }
-    [data-drag-pos] { position: relative; }
-    [data-drag-pos="before"]::before { content: ''; position: absolute; top: -2px; left: 0; right: 0; height: 3px; background: var(--geel); border-radius: 2px; z-index: 10; pointer-events: none; }
-    [data-drag-pos="after"]::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background: var(--geel); border-radius: 2px; z-index: 10; pointer-events: none; }
+    #drag-indicator { position: fixed; height: 3px; background: var(--geel); border-radius: 2px; pointer-events: none; z-index: 100; display: none; }
 
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: var(--modalOverlay); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -325,6 +323,7 @@
   </div>
 
   <!-- App -->
+  <div id="drag-indicator"></div>
   <div id="app">
     <div id="board-container"></div>
     <div id="modal-container"></div>
@@ -2204,8 +2203,9 @@ function setupEventListeners() {
   let dragType = null, dragSrcId = null;
   let lastIndicatorId = null;
 
+  const dragInd = document.getElementById('drag-indicator');
   function clearDragIndicators() {
-    document.querySelectorAll('[data-drag-pos]').forEach(el => el.removeAttribute('data-drag-pos'));
+    dragInd.style.display = 'none';
     lastIndicatorId = null;
   }
 
@@ -2346,32 +2346,24 @@ function setupEventListeners() {
     if (!targetEl) return;
     const dropTarget = findDropTargetAt(targetEl);
     if (dropTarget && dropTarget.dataset.dragId !== dragSrcId && wouldChangePosition(targetEl, clientY)) {
-      let indicatorParent;
-      if (dragType === 'devType') indicatorParent = dropTarget.closest('[data-devtype-group]');
-      else if (dragType === 'kansCat') indicatorParent = dropTarget.closest('[data-kanscat-group]');
+      // Bepaal het referentie-element voor positionering
+      let refEl;
+      if (dragType === 'devType') refEl = dropTarget.closest('[data-devtype-group]');
+      else if (dragType === 'kansCat') refEl = dropTarget.closest('[data-kanscat-group]');
       else if (dragType === 'kans') {
-        // Reorder: individuele kans-kaart. Verplaatsen: cat-items container.
-        const kansEl = dropTarget.closest('[data-drag-type="kans"]');
-        if (kansEl) indicatorParent = kansEl;
-        else {
-          const grp = dropTarget.closest('[data-kanscat-group]');
-          indicatorParent = grp ? grp.querySelector('.cat-items') : null;
-        }
+        refEl = dropTarget.closest('[data-drag-type="kans"]');
+        if (!refEl) { const grp = dropTarget.closest('[data-kanscat-group]'); refEl = grp ? grp.querySelector('.cat-items') : null; }
       }
       else if (dragType === 'dev') {
-        const devEl = dropTarget.closest('[data-drag-type="dev"]');
-        if (devEl) indicatorParent = devEl;
-        else {
-          const grp = dropTarget.closest('[data-devtype-group]');
-          indicatorParent = grp ? grp.querySelector('.cat-items') : null;
-        }
+        refEl = dropTarget.closest('[data-drag-type="dev"]');
+        if (!refEl) { const grp = dropTarget.closest('[data-devtype-group]'); refEl = grp ? grp.querySelector('.cat-items') : null; }
       }
-      else indicatorParent = dropTarget;
-      if (!indicatorParent) { if (lastIndicatorId) clearDragIndicators(); return; }
+      else refEl = dropTarget;
+      if (!refEl) { if (lastIndicatorId) clearDragIndicators(); return; }
 
-      const rect = indicatorParent.getBoundingClientRect();
+      const rect = refEl.getBoundingClientRect();
 
-      // Dead zone voor match-kaarten: alleen indicator tonen als cursor in bovenste/onderste 30% is
+      // Dead zone voor match-kaarten: alleen indicator in bovenste/onderste 30%
       if (dragType === 'match' && rect.height > 50) {
         const edgeZone = rect.height * 0.3;
         if (clientY > rect.top + edgeZone && clientY < rect.bottom - edgeZone) {
@@ -2380,13 +2372,15 @@ function setupEventListeners() {
         }
       }
 
-      const midY = rect.top + rect.height / 2;
-      const pos = clientY < midY ? 'before' : 'after';
+      const pos = clientY < rect.top + rect.height / 2 ? 'before' : 'after';
       const tid = dropTarget.dataset.dragId + ':' + pos;
       if (tid !== lastIndicatorId) {
-        clearDragIndicators();
         lastIndicatorId = tid;
-        indicatorParent.setAttribute('data-drag-pos', pos);
+        const y = pos === 'before' ? rect.top - 1 : rect.bottom - 1;
+        dragInd.style.left = rect.left + 'px';
+        dragInd.style.width = rect.width + 'px';
+        dragInd.style.top = y + 'px';
+        dragInd.style.display = 'block';
       }
     } else if (lastIndicatorId) {
       clearDragIndicators();
