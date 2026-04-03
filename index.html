@@ -2216,6 +2216,9 @@ function setupEventListeners() {
       return el.closest('[data-drag-type="match"]');
     }
     if (dragType === 'kans') {
+      // Kans naar andere kans (reorder) of naar categorie (verplaatsen)
+      const kansEl = el.closest('[data-drag-type="kans"]');
+      if (kansEl) return kansEl;
       const grp = el.closest('[data-kanscat-group]');
       if (grp) return grp.querySelector('[data-drag-type="kansCat"]');
       return null;
@@ -2287,10 +2290,23 @@ function setupEventListeners() {
 
     if (dragType === 'kans') {
       const grp = targetEl.closest('[data-kanscat-group]');
-      if (!grp) return true;
+      if (!grp) return false;
       const targetCid = grp.dataset.kanscatGroup;
       const kans = STATE.data.kansen[dragSrcId];
-      return kans && kans.cid !== targetCid;
+      if (!kans) return false;
+      if (kans.cid !== targetCid) return true; // andere categorie = altijd wijziging
+      // Zelfde categorie: check reorder
+      const targetKans = targetEl.closest('[data-drag-type="kans"]');
+      if (!targetKans || targetKans.dataset.dragId === dragSrcId) return false;
+      const tk = sortedArr(STATE.data.kansen).filter(k => k.cid === targetCid);
+      const fromIdx = tk.findIndex(k => k.id === dragSrcId);
+      const targetIdx = tk.findIndex(k => k.id === targetKans.dataset.dragId);
+      if (fromIdx < 0 || targetIdx < 0) return false;
+      const rect = targetKans.getBoundingClientRect();
+      const insertAfter = clientY > rect.top + rect.height / 2;
+      let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
+      if (fromIdx < toIdx) toIdx--;
+      return fromIdx !== toIdx;
     }
 
     if (dragType === 'dev') {
@@ -2325,8 +2341,13 @@ function setupEventListeners() {
       if (dragType === 'devType') indicatorParent = dropTarget.closest('[data-devtype-group]');
       else if (dragType === 'kansCat') indicatorParent = dropTarget.closest('[data-kanscat-group]');
       else if (dragType === 'kans') {
-        const grp = dropTarget.closest('[data-kanscat-group]');
-        indicatorParent = grp ? grp.querySelector('.cat-items') : null;
+        // Reorder: individuele kans-kaart. Verplaatsen: cat-items container.
+        const kansEl = dropTarget.closest('[data-drag-type="kans"]');
+        if (kansEl) indicatorParent = kansEl;
+        else {
+          const grp = dropTarget.closest('[data-kanscat-group]');
+          indicatorParent = grp ? grp.querySelector('.cat-items') : null;
+        }
       }
       else if (dragType === 'dev') indicatorParent = dropTarget.closest('[data-drag-type="dev"]') || dropTarget;
       else indicatorParent = dropTarget;
@@ -2351,8 +2372,8 @@ function setupEventListeners() {
         lastIndicatorId = tid;
         const indicator = document.createElement('div');
         indicator.className = 'drag-indicator';
-        if (dragType === 'kans') {
-          // Kans: indicator binnen cat-items container
+        if (dragType === 'kans' && indicatorParent.classList.contains('cat-items')) {
+          // Kans naar andere categorie: indicator binnen cat-items container
           if (pos === 'before') {
             indicatorParent.insertBefore(indicator, indicatorParent.firstChild);
           } else {
@@ -2420,17 +2441,39 @@ function setupEventListeners() {
       return;
     }
 
-    // Kans naar andere categorie
+    // Kans naar andere categorie of reorder binnen categorie
     if (data.type === 'kans') {
       const grp = targetEl.closest('[data-kanscat-group]');
-      if (grp) {
-        const newCid = grp.dataset.kanscatGroup;
-        const kans = STATE.data.kansen[data.id];
-        if (kans && kans.cid !== newCid) {
-          fbUpdate(`kansen/${data.id}`, {cid: newCid, updatedAt: today()});
+      if (!grp) return;
+      const newCid = grp.dataset.kanscatGroup;
+      const kans = STATE.data.kansen[data.id];
+      if (!kans) return;
+      if (kans.cid !== newCid) {
+        // Andere categorie: update cid + so
+        const newSo = objToArr(STATE.data.kansen).filter(k => k.cid === newCid).length;
+        fbUpdate(`kansen/${data.id}`, {cid: newCid, so: newSo, updatedAt: today()});
+      } else {
+        // Reorder binnen zelfde categorie
+        const targetKans = targetEl.closest('[data-drag-type="kans"]');
+        if (!targetKans || targetKans.dataset.dragId === data.id) return;
+        const tk = sortedArr(STATE.data.kansen).filter(k => k.cid === newCid);
+        const fromIdx = tk.findIndex(k => k.id === data.id);
+        const targetIdx = tk.findIndex(k => k.id === targetKans.dataset.dragId);
+        if (fromIdx >= 0 && targetIdx >= 0) {
+          const rect = targetKans.getBoundingClientRect();
+          const insertAfter = clientY > rect.top + rect.height / 2;
+          let toIdx = insertAfter ? targetIdx + 1 : targetIdx;
+          if (fromIdx < toIdx) toIdx--;
+          if (fromIdx !== toIdx) {
+            const item = tk.splice(fromIdx, 1)[0];
+            tk.splice(toIdx, 0, item);
+            const updates = {};
+            tk.forEach((k, i) => { updates[`kansen/${k.id}/so`] = i; });
+            fbMulti(updates);
+          }
         }
-        return;
       }
+      return;
     }
 
     // Dev naar andere categorie of reorder
