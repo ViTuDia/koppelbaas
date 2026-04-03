@@ -40,7 +40,7 @@
     /* Layout */
     html, body { height: 100%; }
     #app { display: none; flex-direction: column; height: 100%; }
-    .main { display: flex; flex: 1; overflow: hidden; }
+    .main { display: flex; flex: 1; overflow: hidden; margin-bottom: 44px; }
     .header { background: var(--header); color: var(--headerTxt); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     .header-left { display: flex; align-items: center; gap: 18px; }
     .header-logo-ard { font-size: 26px; font-weight: 700; letter-spacing: 3px; }
@@ -71,7 +71,7 @@
     .pipe-col { flex: 1; min-width: 200px; display: flex; flex-direction: column; border-right: 1px solid var(--zachtgrijs); }
     .pipe-col:last-child { border-right: none; }
     .pipe-col-header { padding: 14px 14px 10px; background: var(--panelBg); height: 88px; display: flex; flex-direction: column; justify-content: space-between; }
-    .pipe-col-body { flex: 1; overflow-y: auto; padding: 8px 8px 32px; }
+    .pipe-col-body { flex: 1; overflow-y: auto; padding: 8px 8px 60px; }
 
     /* Kaarten */
     .kans-card { padding: 8px 10px; margin-bottom: 4px; border-radius: 3px; border: 1px solid var(--kaartBorder); background: var(--kaart); cursor: grab; transition: opacity 0.12s; }
@@ -151,7 +151,7 @@
     /* Footer — vast onderaan window */
     .footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; padding: 12px 24px; border-top: 1px solid var(--zachtgrijs); background: var(--footerBg); display: flex; justify-content: space-between; align-items: center; }
     .footer span { font-size: 12px; color: var(--grijs); font-weight: 300; }
-    .pipe-col-body { padding-bottom: 32px; }
+    .pipe-col-body { padding-bottom: 60px; }
 
     /* Mobiele elementen (verborgen op desktop) */
     .mob-tabs { display: none; }
@@ -1044,7 +1044,7 @@ function renderPipeline(c, matches, kansen, devs, dts) {
     const isDT = dragOver === stage.id;
     const allC = sm.length > 0 && sm.every(m => m.col);
 
-    html += `<div class="pipe-col" data-stage="${stage.id}" style="background:${isDT ? sc+'12' : 'transparent'}">`;
+    html += `<div class="pipe-col" data-stage="${stage.id}" style="background:${isDT ? sc+'12' : sc+'06'}">`;
 
     // Kolomheader
     html += `<div class="pipe-col-header" style="border-bottom:3px solid ${sc}">
