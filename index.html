@@ -323,6 +323,7 @@
     <!-- Laden (even wachten op Firebase check) -->
     <div id="login-loading" style="display:flex;flex-direction:column;align-items:center">
       <div style="color:#ffffff44;font-size:12px">Laden...</div>
+      <div style="color:#ff444488;font-size:9px;margin-top:8px">DBG-v2</div>
     </div>
   </div>
 
@@ -2791,20 +2792,25 @@ function setupEventListeners() {
 
 // ─── INIT ────────────────────────────────────────
 (function init() {
-  try { initFirebase(); } catch(e) {
-    console.error('Firebase init:', e);
-    document.getElementById('login-loading').innerHTML = '<div style="color:red;font-size:11px;max-width:300px;word-break:break-all">Firebase init: '+e.message+'</div>';
+  const dbg = document.getElementById('login-loading');
+  function dbgMsg(m) { dbg.innerHTML += '<div style="color:#ff8;font-size:10px">'+m+'</div>'; }
+
+  dbgMsg('init start');
+  try { initFirebase(); dbgMsg('fb ok, db='+(!!db)); } catch(e) {
+    dbgMsg('fb FAIL: '+e.message);
   }
 
-  if (localStorage.getItem('kb_session') === '1' && db) {
-    // Sessie aanwezig → direct naar app
-    try { enterApp(); } catch(e) {
-      console.error('EnterApp:', e);
-      document.getElementById('login-loading').innerHTML = '<div style="color:red;font-size:11px;max-width:300px;word-break:break-all">EnterApp: '+e.message+'<br><br>'+e.stack+'</div>';
+  const sess = localStorage.getItem('kb_session');
+  dbgMsg('sess='+sess+' db='+(!!db));
+
+  if (sess === '1' && db) {
+    dbgMsg('enterApp...');
+    try { enterApp(); dbgMsg('enterApp OK'); } catch(e) {
+      dbgMsg('enterApp FAIL: '+e.message+'<br>'+e.stack);
       localStorage.removeItem('kb_session');
     }
   } else {
-    // Geen sessie → check Firebase voor hash
+    dbgMsg('checkInitialState...');
     KB.checkInitialState();
   }
 
