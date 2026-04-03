@@ -1334,20 +1334,19 @@ function renderEditMatchModal(c) {
       </div>
       <button data-noprint class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="editKansFromMatch" data-id="${md.kid}">Bewerk kans \u2192</button>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>BVO (m\u00B2)</label><input type="number" min="0" data-calcfield="bvo" value="${md.bvo||''}" oninput="KB.mfCalc('bvo',this.value?Number(this.value):0)"></div>
+      <div class="field"><label>Honorarium (\u20AC)</label><input type="number" min="0" data-calcfield="honorarium" value="${md.honorarium||''}" oninput="KB.mfCalc('honorarium',this.value?Number(this.value):0)"></div>
+    </div>
     <div style="border:1px solid ${c.zachtgrijs};border-radius:4px;margin-bottom:10px;overflow:hidden">
       <div style="padding:7px 10px;background:${c.lichtgrijs};cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:500;color:${c.grijs}" data-action="toggleCalc">\uD83D\uDCB0 Honorariumcalculator <span style="font-size:9px">${md._calcOpen?'\u25B2':'\u25BC'}</span></div>
       ${md._calcOpen ? `<div style="padding:10px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px">
-          <div class="field" style="margin-bottom:0"><label>BVO (m\u00B2)</label><input type="number" min="0" data-calcfield="bvo" value="${md.bvo||''}" oninput="KB.mfCalc('bvo',this.value?Number(this.value):0)" placeholder="${kans?.omvang||''}"></div>
-          <div class="field" style="margin-bottom:0"><label>Bouwkosten/m\u00B2</label><input type="number" min="0" data-calcfield="bkm2" value="${md.bkm2||''}" oninput="KB.mfCalc('bkm2',this.value?Number(this.value):0)"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div class="field" style="margin-bottom:0"><label>Bouwkosten/m\u00B2 (\u20AC)</label><input type="number" min="0" data-calcfield="bkm2" value="${md.bkm2||''}" oninput="KB.mfCalc('bkm2',this.value?Number(this.value):0)"></div>
           <div class="field" style="margin-bottom:0"><label>Honorarium %</label><input type="number" min="0" max="100" step="0.5" data-calcfield="honPct" value="${md.honPct||''}" oninput="KB.mfCalc('honPct',this.value?Number(this.value):0)"></div>
         </div>
-        ${(md.bvo && md.bkm2) ? `<div style="font-size:10px;color:${c.grijs};font-weight:300">${md.bvo} \u00D7 \u20AC${(md.bkm2||0).toLocaleString('nl-NL')} = ${fmtEuro(md.bvo*md.bkm2)} bouwkosten \u2192 ${md.honPct||0}% = ${fmtEuro(Math.round(md.bvo*md.bkm2*(md.honPct||0)/100))}</div>` : ''}
+        ${(md.bvo && md.bkm2) ? `<div style="font-size:10px;color:${c.grijs};font-weight:300">${md.bvo}m\u00B2 \u00D7 \u20AC${(md.bkm2||0).toLocaleString('nl-NL')} = ${fmtEuro(md.bvo*md.bkm2)} bouwkosten \u2192 ${md.honPct||0}% = ${fmtEuro(Math.round(md.bvo*md.bkm2*(md.honPct||0)/100))}</div>` : ''}
       </div>` : ''}
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>Stichtingskosten (\u20AC)</label><input type="number" min="0" data-calcfield="omzet" value="${md.omzet||''}" oninput="KB.mfCalc('omzet',this.value?Number(this.value):0)"></div>
-      <div class="field"><label>Honorarium (\u20AC)</label><input type="number" min="0" data-calcfield="honorarium" value="${md.honorarium||''}" oninput="KB.mfCalc('honorarium',this.value?Number(this.value):0)"></div>
     </div>
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
     <div class="field"><label>Fase</label><select onchange="KB.mfStage(this.value)">
@@ -2100,7 +2099,7 @@ function setupEventListeners() {
           const kans = STATE.data.kansen[m.kid];
           STATE.ui.modal = 'editMatch';
           STATE.ui.modalData = {...m, id, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[])),
-            bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0),
+            bvo: m.bvo || 0,
             bkm2: m.bkm2 || hd.bkm2,
             honPct: m.honPct ?? hd.honPct,
             _calcOpen: false
