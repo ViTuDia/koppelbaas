@@ -2263,9 +2263,6 @@ function setupEventListeners() {
       if (kansEl) return kansEl;
       const grp = el.closest('[data-kanscat-group]');
       if (grp) return grp.querySelector('[data-drag-type="kansCat"]');
-      // Kans naar pipeline-kolom
-      const col = el.closest('[data-stage]');
-      if (col) return col;
       return null;
     }
     if (dragType === 'dev') {
@@ -2383,24 +2380,6 @@ function setupEventListeners() {
     const dropTarget = findDropTargetAt(targetEl);
     if (!dropTarget || dropTarget.dataset.dragId === dragSrcId) {
       if (lastIndicatorId) clearDragIndicators();
-      return;
-    }
-
-    // Kans naar pipeline-kolom: toon indicator bovenaan de kolom-body
-    if (dragType === 'kans' && dropTarget.dataset.stage) {
-      const colBody = dropTarget.querySelector('.pipe-col-body');
-      if (colBody) {
-        const tid = 'stage:' + dropTarget.dataset.stage;
-        if (tid !== lastIndicatorId) {
-          lastIndicatorId = tid;
-          resolvedDropPos = null;
-          const r = colBody.getBoundingClientRect();
-          dragInd.style.left = r.left + 'px';
-          dragInd.style.width = r.width + 'px';
-          dragInd.style.top = (r.top + 4) + 'px';
-          dragInd.style.display = 'block';
-        }
-      }
       return;
     }
 
