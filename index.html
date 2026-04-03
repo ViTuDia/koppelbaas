@@ -1308,7 +1308,7 @@ function renderEditKansModal(c) {
     </select></div>
     <div class="field"><label>Adres</label><input value="${esc(k.adres||'')}" oninput="KB.mf('adres',this.value)"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>Omvang (m\u00B2)</label><input value="${esc(k.omvang||'')}" oninput="KB.mf('omvang',this.value)"></div>
+      <div class="field"><label>BVO (m\u00B2)</label><input value="${esc(k.omvang||'')}" oninput="KB.mf('omvang',this.value)"></div>
       <div class="field"><label>Functie</label><select onchange="KB.mf('type',this.value)">
         ${FUNCTIE.map(f => `<option ${k.type===f?'selected':''}>${f}</option>`).join('')}
       </select></div>
@@ -2101,7 +2101,7 @@ function setupEventListeners() {
           const kans = STATE.data.kansen[m.kid];
           STATE.ui.modal = 'editMatch';
           STATE.ui.modalData = {...m, id, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[])),
-            bvo: m.bvo || 0,
+            bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0),
             bkm2: m.bkm2 || hd.bkm2,
             honPct: m.honPct ?? hd.honPct,
             _calcOpen: false
