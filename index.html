@@ -323,7 +323,6 @@
     <!-- Laden (even wachten op Firebase check) -->
     <div id="login-loading" style="display:flex;flex-direction:column;align-items:center">
       <div style="color:#ffffff44;font-size:12px">Laden...</div>
-      <div style="color:#ff444488;font-size:9px;margin-top:8px">DBG-v2</div>
     </div>
   </div>
 
@@ -2405,35 +2404,33 @@ function setupEventListeners() {
         return;
       }
     }
-      const tid = dropTarget.dataset.dragId + ':' + pos;
-      if (tid !== lastIndicatorId) {
-        lastIndicatorId = tid;
-        // Positioneer exact in het midden van de gap tussen twee items
-        let y;
-        if (pos === 'before') {
-          const prev = refEl.previousElementSibling;
-          if (prev && !prev.hasAttribute('data-empty')) {
-            const prevRect = prev.getBoundingClientRect();
-            y = (prevRect.bottom + rect.top) / 2;
-          } else {
-            y = rect.top;
-          }
+
+    const tid = dropTarget.dataset.dragId + ':' + pos;
+    if (tid !== lastIndicatorId) {
+      lastIndicatorId = tid;
+      // Positioneer exact in het midden van de gap tussen twee items
+      let y;
+      if (pos === 'before') {
+        const prev = refEl.previousElementSibling;
+        if (prev && !prev.hasAttribute('data-empty')) {
+          const prevRect = prev.getBoundingClientRect();
+          y = (prevRect.bottom + rect.top) / 2;
         } else {
-          const next = refEl.nextElementSibling;
-          if (next && !next.hasAttribute('data-empty')) {
-            const nextRect = next.getBoundingClientRect();
-            y = (rect.bottom + nextRect.top) / 2;
-          } else {
-            y = rect.bottom;
-          }
+          y = rect.top;
         }
-        dragInd.style.left = rect.left + 'px';
-        dragInd.style.width = rect.width + 'px';
-        dragInd.style.top = (y - 1.5) + 'px';
-        dragInd.style.display = 'block';
+      } else {
+        const next = refEl.nextElementSibling;
+        if (next && !next.hasAttribute('data-empty')) {
+          const nextRect = next.getBoundingClientRect();
+          y = (rect.bottom + nextRect.top) / 2;
+        } else {
+          y = rect.bottom;
+        }
       }
-    } else if (lastIndicatorId) {
-      clearDragIndicators();
+      dragInd.style.left = rect.left + 'px';
+      dragInd.style.width = rect.width + 'px';
+      dragInd.style.top = (y - 1.5) + 'px';
+      dragInd.style.display = 'block';
     }
   }
 
@@ -2792,25 +2789,15 @@ function setupEventListeners() {
 
 // ─── INIT ────────────────────────────────────────
 (function init() {
-  const dbg = document.getElementById('login-loading');
-  function dbgMsg(m) { dbg.innerHTML += '<div style="color:#ff8;font-size:10px">'+m+'</div>'; }
+  try { initFirebase(); } catch(e) { console.error('Firebase init:', e); }
 
-  dbgMsg('init start');
-  try { initFirebase(); dbgMsg('fb ok, db='+(!!db)); } catch(e) {
-    dbgMsg('fb FAIL: '+e.message);
-  }
-
-  const sess = localStorage.getItem('kb_session');
-  dbgMsg('sess='+sess+' db='+(!!db));
-
-  if (sess === '1' && db) {
-    dbgMsg('enterApp...');
-    try { enterApp(); dbgMsg('enterApp OK'); } catch(e) {
-      dbgMsg('enterApp FAIL: '+e.message+'<br>'+e.stack);
+  if (localStorage.getItem('kb_session') === '1' && db) {
+    try { enterApp(); } catch(e) {
+      console.error('EnterApp:', e);
       localStorage.removeItem('kb_session');
+      KB.checkInitialState();
     }
   } else {
-    dbgMsg('checkInitialState...');
     KB.checkInitialState();
   }
 
