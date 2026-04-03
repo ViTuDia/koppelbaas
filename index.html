@@ -795,7 +795,9 @@ function updateMobView() {
       col.classList.toggle('mob-active', col.dataset.stage === STATE.ui.mobStage);
     });
     document.querySelectorAll('.mob-stage-tab').forEach(t => {
-      t.classList.toggle('active', t.dataset.stage === STATE.ui.mobStage);
+      const isAct = t.dataset.stage === STATE.ui.mobStage;
+      t.classList.toggle('active', isAct);
+      t.style.borderBottom = isAct ? `3px solid ${stageColor(t.dataset.stage)}` : '3px solid transparent';
     });
   }
   // Tellers in tab-balk
