@@ -2005,6 +2005,9 @@ function setupEventListeners() {
         const mid = el.dataset.mid;
         const did = el.dataset.did;
         const m = STATE.data.matches[mid]; if (!m) break;
+        const dev = STATE.data.devs[did];
+        const devName = dev?.name || 'Naamloos';
+        if (!confirm(`"${devName}" ontkoppelen van deze match?`)) break;
         const links = (m.links||[]).filter(l => l !== did);
         fbUpdate(`matches/${mid}`, {links, updatedAt:today()});
         break;
