@@ -408,7 +408,7 @@ const today = () => new Date().toISOString().split('T')[0];
 // ─── B. STATE ────────────────────────────────────
 
 const STATE = {
-  data: { devTypes:{}, kansCats:{}, devs:{}, kansen:{}, matches:{}, users:{} },
+  data: { devTypes:{}, kansCats:{}, devs:{}, kansen:{}, matches:{}, users:{}, meta:{} },
   ui: {
     dark: localStorage.getItem('kb_dark') === '1',
     selectedDev: null, selectedMatch: null,
@@ -427,6 +427,17 @@ function isMob() { return window.innerWidth < 768; }
 function C() { return STATE.ui.dark ? DARK : LIGHT; }
 function stageColor(stageId) { return (STATE.ui.dark ? STAGE_COLORS_DARK : STAGE_COLORS_LIGHT)[stageId] || '#888'; }
 function stageBg(stageId) { return (STATE.ui.dark ? STAGE_BG_DARK : STAGE_BG_LIGHT)[stageId] || '#fff'; }
+function stagePct(stageId) {
+  const sk = STATE.data.meta?.stageKansen;
+  const defaults = {matches:10,verkennend:25,offerte:50,actief:100};
+  return sk && sk[stageId] != null ? Number(sk[stageId]) : defaults[stageId] || 0;
+}
+function fmtEuro(n) {
+  if (!n || n === 0) return '€0';
+  if (n >= 1000000) return '€' + (n/1000000).toFixed(1).replace('.0','') + 'M';
+  if (n >= 1000) return '€' + (n/1000).toFixed(1).replace('.0','') + 'K';
+  return '€' + n;
+}
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function mapsUrl(a) { return a ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}` : null; }
 
@@ -513,7 +524,7 @@ function initFirebase() {
 }
 
 function setupListeners() {
-  const paths = ['devTypes','kansCats','devs','kansen','matches','users'];
+  const paths = ['devTypes','kansCats','devs','kansen','matches','users','meta'];
   paths.forEach(p => {
     db.ref(p).on('value', snap => {
       STATE.data[p] = snap.val() || {};
@@ -826,6 +837,7 @@ function renderHeader(c, devs, kansen, matches, alarms) {
       <div class="header-stat"><div class="header-stat-val">${devs.length}</div><div class="header-stat-lbl">devs</div></div>
       <div class="header-stat"><div class="header-stat-val">${kansen.length}</div><div class="header-stat-lbl">kansen</div></div>
       <div class="header-stat"><div class="header-stat-val">${matches.length}</div><div class="header-stat-lbl">matches</div></div>
+      ${(() => { const gw = matches.reduce((s,m) => s + (m.honorarium||0) * stagePct(m.stage) / 100, 0); return gw > 0 ? `<div class="header-stat"><div class="header-stat-val">${fmtEuro(Math.round(gw))}</div><div class="header-stat-lbl">verwacht</div></div>` : ''; })()}
       <button data-noprint title="Bekijk alerts" class="btn header-btn" style="background:${al>0?c.rood:(STATE.ui.dark?'#444':'#000')}" data-action="showAlerts"><span class="header-icon">\u26A0</span> ${al} alert${al!==1?'s':''}</button>
       <button data-noprint title="${STATE.ui.dark?'Licht thema':'Donker thema'}" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="toggleDark"><span class="header-icon">${STATE.ui.dark?'\u2600':'\u263E'}</span></button>
       <button data-noprint title="Print het board" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="print"><span class="header-icon">\uD83D\uDDA8</span></button>
@@ -1063,6 +1075,7 @@ function renderPipeline(c, matches, kansen, devs, dts) {
         <div style="font-size:24px;font-weight:300;color:${sc};flex-shrink:0">${sm.length}</div>
       </div>
       ${stage.needsMin2 ? `<div style="font-size:10px;color:${c.grijs};font-weight:300;font-style:italic">Min. 2 koppelingen</div>` : `<div style="font-size:10px;color:${c.grijs};font-weight:300;font-style:italic">Min. 1 koppeling</div>`}
+      ${(() => { const rawH = sm.reduce((s,m) => s + (m.honorarium||0), 0); if (!rawH) return ''; const pct = stagePct(stage.id); const gw = Math.round(rawH * pct / 100); return `<div style="font-size:10px;color:${sc};font-weight:400;margin-top:2px">${fmtEuro(rawH)} (${pct}% = ${fmtEuro(gw)})</div>`; })()}
     </div>`;
 
     // Kaarten
@@ -1132,6 +1145,7 @@ function renderMatchCard(c, match, stage, devs, dts) {
       html += '</div>';
     }
     if (kans.contact) html += `<div style="font-size:11px;color:${c.grijs};margin-top:1px;font-weight:300">\uD83D\uDC64 ${esc(kans.contact)}</div>`;
+    if (match.honorarium) { const gw = Math.round((match.honorarium||0) * stagePct(stage.id) / 100); html += `<div style="font-size:11px;color:${sc};margin-top:2px;font-weight:400">\uD83D\uDCB0 ${fmtEuro(match.honorarium)} \u2192 ${fmtEuro(gw)}</div>`; }
     if (match.notitie) {
       const nt = match.notitie.length > 50 ? match.notitie.substring(0,50)+'\u2026' : match.notitie;
       html += `<div style="font-size:11px;color:${c.grijs};margin-top:2px;font-style:italic;font-weight:300">${esc(nt)}</div>`;
@@ -1306,6 +1320,10 @@ function renderEditMatchModal(c) {
         <div style="font-size:11px;color:${c.grijs};font-weight:300">${kans?.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans?.type||'')}</div>
       </div>
       <button data-noprint class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="editKansFromMatch" data-id="${md.kid}">Bewerk kans \u2192</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="field"><label>Projectomzet (€)</label><input type="number" min="0" value="${md.omzet||''}" oninput="KB.mf('omzet',this.value?Number(this.value):0)"></div>
+      <div class="field"><label>Honorarium (€)</label><input type="number" min="0" value="${md.honorarium||''}" oninput="KB.mf('honorarium',this.value?Number(this.value):0)"></div>
     </div>
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
     <div class="field"><label>Fase</label><select onchange="KB.mfStage(this.value)">
@@ -1527,6 +1545,15 @@ function renderAdminModal(c) {
       <div class="field"><label>Herhaal nieuw wachtwoord</label><input type="password" value="${esc(d.newPw2||'')}" oninput="KB.mf('newPw2',this.value)"></div>
       ${pwMsg ? `<div style="font-size:11px;margin-bottom:8px;color:${pwOk?c.groen:c.rood}">${esc(pwMsg)}</div>` : ''}
       <button class="btn btn-black btn-sm" data-action="changePassword">Wijzig wachtwoord</button>
+    </div>
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Conversiepercentages</div>
+      <div style="font-size:11px;color:${c.grijs};margin-bottom:8px;font-weight:300">Verwachte conversiekans per fase (voor gewogen omzetberekening)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${STAGES.map(s => `<div class="field" style="margin-bottom:0"><label>${esc(s.label)}</label><div style="display:flex;align-items:center;gap:4px"><input type="number" min="0" max="100" value="${d['pct_'+s.id]||0}" oninput="KB.mf('pct_${s.id}',Number(this.value))" style="width:70px"><span style="font-size:12px;color:${c.grijs}">%</span></div></div>`).join('')}
+      </div>
+      ${d.pctMsg ? `<div style="font-size:11px;margin-top:8px;color:${d.pctOk?c.groen:c.rood}">${esc(d.pctMsg)}</div>` : ''}
+      <button class="btn btn-black btn-sm" style="margin-top:8px" data-action="saveStageKansen">Opslaan</button>
     </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Database backup</div>
@@ -1850,7 +1877,8 @@ function setupEventListeners() {
         STATE.ui.modal = 'alerts'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
         renderModal(); break;
       case 'showAdmin':
-        STATE.ui.modal = 'admin'; STATE.ui.modalData = {oldPw:'',newPw:'',newPw2:'',pwMsg:'',pwOk:false}; STATE.ui.modalExtra = null;
+        STATE.ui.modal = 'admin'; STATE.ui.modalData = {oldPw:'',newPw:'',newPw2:'',pwMsg:'',pwOk:false,
+          pct_matches:stagePct('matches'),pct_verkennend:stagePct('verkennend'),pct_offerte:stagePct('offerte'),pct_actief:stagePct('actief'),pctMsg:'',pctOk:false}; STATE.ui.modalExtra = null;
         renderModal(); break;
       case 'changePassword': {
         (async () => {
@@ -1870,6 +1898,14 @@ function setupEventListeners() {
             renderModal();
           } catch(err) { md.pwMsg = 'Fout: ' + err.message; md.pwOk = false; renderModal(); }
         })();
+        break;
+      }
+      case 'saveStageKansen': {
+        const md = STATE.ui.modalData; if (!md) break;
+        const pcts = {matches:md.pct_matches||0,verkennend:md.pct_verkennend||0,offerte:md.pct_offerte||0,actief:md.pct_actief||0};
+        fbUpdate('meta/stageKansen', pcts).then(() => {
+          md.pctMsg = 'Percentages opgeslagen!'; md.pctOk = true; renderModal();
+        }).catch(err => { md.pctMsg = 'Fout: '+err.message; md.pctOk = false; renderModal(); });
         break;
       }
       case 'exportBackup':
@@ -1986,7 +2022,7 @@ function setupEventListeners() {
           renderModal();
         } else {
           const cnt = objToArr(STATE.data.matches).filter(m => m.stage === stg).length;
-          fbPush('matches', {kid:kansId,links:devIds,coals:[],stage:stg,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:stg,at:today()}],ownerId:null});
+          fbPush('matches', {kid:kansId,links:devIds,coals:[],stage:stg,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:stg,at:today()}],ownerId:null,omzet:0,honorarium:0});
           STATE.ui.modal = null; renderModal();
         }
         break;
@@ -1999,7 +2035,7 @@ function setupEventListeners() {
       case 'saveMatch': {
         const md = STATE.ui.modalData; if (!md) break;
         const origM = STATE.data.matches[md.id];
-        const upd = {notitie:md.notitie||'',stage:md.stage,links:md.links||[],coals:md.coals||[],updatedAt:today()};
+        const upd = {notitie:md.notitie||'',stage:md.stage,links:md.links||[],coals:md.coals||[],updatedAt:today(),omzet:md.omzet||0,honorarium:md.honorarium||0};
         // StageHistory bijwerken als stage gewijzigd
         if (origM && origM.stage !== md.stage) {
           upd.stageHistory = [...(origM.stageHistory||[]), {stage:md.stage, at:today()}];
@@ -2213,7 +2249,7 @@ function setupEventListeners() {
         } else if (ex.newMatchKansId) {
           // Nieuwe match via + knop met stage gate
           const cnt = objToArr(STATE.data.matches).filter(x => x.stage === newStage).length;
-          fbPush('matches', {kid:ex.newMatchKansId,links:ex.newMatchDevIds||[],coals:[],stage:newStage,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:newStage,at:today()}],ownerId:null});
+          fbPush('matches', {kid:ex.newMatchKansId,links:ex.newMatchDevIds||[],coals:[],stage:newStage,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:newStage,at:today()}],ownerId:null,omzet:0,honorarium:0});
           STATE.ui.modal = null; renderModal();
         }
         break;
