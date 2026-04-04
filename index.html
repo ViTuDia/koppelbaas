@@ -844,9 +844,16 @@ function renderSelectionBar(c, selName, matches, unmatched) {
   const allMFolded = matches.length === 0 || matches.every(m => m.col);
   const allKFolded = unmatched.length === 0 || unmatched.every(k => STATE.ui.collapsedKansen[k.id]);
   const allFolded = allMFolded && allKFolded && (matches.length > 0 || unmatched.length > 0);
+  // Gewogen omzet voor geselecteerde dev
+  let devRevenue = '';
+  if (STATE.ui.selectedDev) {
+    const devMatches = matches.filter(m => matchDevIds(m).has(STATE.ui.selectedDev));
+    const gwTotal = devMatches.reduce((s,m) => s + (m.honorarium||0) * stagePct(m.stage) / 100, 0);
+    if (gwTotal > 0) devRevenue = `<span style="font-size:11px;color:${c.geel};font-weight:400;margin-left:6px">${fmtEuro(Math.round(gwTotal))} verwacht</span>`;
+  }
   return `<div class="sel-bar">
     <div style="display:flex;align-items:center;gap:10px">
-      ${selName ? `<span class="sel-bar-name"><span class="sel-bar-slash">/ </span>${esc(selName)}</span>` : ''}
+      ${selName ? `<span class="sel-bar-name"><span class="sel-bar-slash">/ </span>${esc(selName)}${devRevenue}</span>` : ''}
     </div>
     <div style="display:flex;align-items:center;gap:8px" data-noprint>
       <button title="${allFolded?'Alle kaarten uitklappen':'Alle kaarten inklappen'}" class="btn btn-grey" style="display:flex;align-items:center;gap:4px;font-size:13px;padding:6px 14px" data-action="collapseAll" data-val="${allFolded?'0':'1'}">
@@ -1095,7 +1102,11 @@ function renderPipeline(c, matches, kansen, devs, dts) {
 
 function renderMatchCard(c, match, stage, devs, dts) {
   const kans = STATE.data.kansen[match.kid];
-  if (!kans) return '';
+  if (!kans) return `<div class="match-card" style="padding:14px;background:${c.rood}18;border-left:5px solid ${c.rood};opacity:0.7">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;color:${c.rood};font-weight:400">Kans verwijderd</span>
+      <button class="btn btn-red btn-xs" data-action="deleteMatch" data-id="${match.id}">Verwijder</button>
+    </div></div>`;
   const sc = stageColor(stage.id);
   const sb = stageBg(stage.id);
   const tl = totalLinks(match);
@@ -1603,15 +1614,12 @@ KB.finEdit = function(matchId, field, value) {
     const bvo = md.finEdits[matchId].bvo !== undefined ? md.finEdits[matchId].bvo : (m.bvo||0);
     const bkm2 = md.finEdits[matchId].bkm2 !== undefined ? md.finEdits[matchId].bkm2 : (m.bkm2||0);
     const honPct = md.finEdits[matchId].honPct !== undefined ? md.finEdits[matchId].honPct : (m.honPct||0);
-    const omzet = Math.round(bvo * bkm2);
-    const honorarium = Math.round(omzet * honPct / 100);
-    md.finEdits[matchId].omzet = omzet;
+    const honorarium = Math.round(bvo * bkm2 * honPct / 100);
     md.finEdits[matchId].honorarium = honorarium;
   }
   // Direct opslaan naar Firebase
   const upd = {};
   upd[field] = v;
-  if (md.finEdits[matchId].omzet !== undefined) upd.omzet = md.finEdits[matchId].omzet;
   if (md.finEdits[matchId].honorarium !== undefined) upd.honorarium = md.finEdits[matchId].honorarium;
   upd.updatedAt = today();
   fbUpdate(`matches/${matchId}`, upd);
@@ -1853,10 +1861,18 @@ KB.mfCalc = function(field, value) {
   md[field] = value;
   STATE.ui.modalDirty = true;
   if (['bvo','bkm2','honPct'].includes(field)) {
-    const r = calcHon(md);
-    md.omzet = r.omzet;
-    md.honorarium = r.honorarium;
+    const newHon = calcHon(md).honorarium;
+    if (md.honorarium && md.honorarium !== newHon && !md._calcConfirmed) {
+      if (!confirm(`Honorarium wijzigt van ${fmtEuro(md.honorarium)} naar ${fmtEuro(newHon)}. Doorgaan?`)) {
+        md[field] = md['_prev_'+field] ?? value;
+        renderModal();
+        return;
+      }
+      md._calcConfirmed = true;
+    }
+    md.honorarium = newHon;
   }
+  md['_prev_'+field] = value;
   const ae = document.activeElement;
   const cf = ae?.dataset?.calcfield;
   renderModal();
@@ -2219,6 +2235,14 @@ function setupEventListeners() {
           fbPush('kansen', {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',so,createdAt:today(),updatedAt:today(),ownerId:null});
         } else {
           fbUpdate(`kansen/${k.id}`, {name:k.name||'',cid:k.cid||'',adres:k.adres||'',omvang:k.omvang||'',type:k.type||'Wonen',contact:k.contact||'',notitie:k.notitie||'',updatedAt:today()});
+          // Sync BVO naar alle matches voor deze kans
+          const newBvo = k.omvang ? Number(k.omvang) : 0;
+          objToArr(STATE.data.matches).filter(m => m.kid === k.id).forEach(m => {
+            if ((m.bvo||0) !== newBvo) {
+              const hon = Math.round(newBvo * (m.bkm2||0) * (m.honPct||0) / 100);
+              fbUpdate(`matches/${m.id}`, {bvo:newBvo, honorarium:hon, updatedAt:today()});
+            }
+          });
         }
         STATE.ui.modal = null; STATE.ui.modalDirty = false; renderModal(); showToast('Opgeslagen'); break;
       }
@@ -2276,7 +2300,7 @@ function setupEventListeners() {
         } else {
           const cnt = objToArr(STATE.data.matches).filter(m => m.stage === stg).length;
           const _hd = honDefaults(); const _k = STATE.data.kansen[kansId]; const _bvo = _k?.omvang ? Number(_k.omvang) : 0;
-          fbPush('matches', {kid:kansId,links:devIds,coals:[],stage:stg,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:stg,at:today()}],ownerId:null,bvo:_bvo,bkm2:_hd.bkm2,honPct:_hd.honPct,omzet:0,honorarium:0});
+          fbPush('matches', {kid:kansId,links:devIds,coals:[],stage:stg,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:stg,at:today()}],ownerId:null,bvo:_bvo,bkm2:_hd.bkm2,honPct:_hd.honPct,honorarium:0});
           STATE.ui.modal = null; renderModal();
         }
         break;
@@ -2299,7 +2323,7 @@ function setupEventListeners() {
       case 'saveMatch': {
         const md = STATE.ui.modalData; if (!md) break;
         const origM = STATE.data.matches[md.id];
-        const upd = {notitie:md.notitie||'',stage:md.stage,links:md.links||[],coals:md.coals||[],updatedAt:today(),omzet:md.omzet||0,honorarium:md.honorarium||0,bvo:md.bvo||0,bkm2:md.bkm2||0,honPct:md.honPct||0};
+        const upd = {notitie:md.notitie||'',stage:md.stage,links:md.links||[],coals:md.coals||[],updatedAt:today(),honorarium:md.honorarium||0,bvo:md.bvo||0,bkm2:md.bkm2||0,honPct:md.honPct||0};
         // StageHistory bijwerken als stage gewijzigd
         if (origM && origM.stage !== md.stage) {
           upd.stageHistory = [...(origM.stageHistory||[]), {stage:md.stage, at:today()}];
@@ -2308,6 +2332,8 @@ function setupEventListeners() {
         fbUpdate(`matches/${md.id}`, upd);
         STATE.ui.modal = null; STATE.ui.modalDirty = false; renderModal(); showToast('Opgeslagen'); break;
       }
+      case 'deleteMatch':
+        fbRemove(`matches/${id}`); showToast('Match verwijderd'); break;
       case 'confirmDeleteMatch':
         STATE.ui.modal = 'confirmDelete';
         STATE.ui.modalExtra = {type:'match',id};
@@ -2522,7 +2548,7 @@ function setupEventListeners() {
           // Nieuwe match via + knop met stage gate
           const cnt = objToArr(STATE.data.matches).filter(x => x.stage === newStage).length;
           const _hd = honDefaults(); const _k = STATE.data.kansen[ex.newMatchKansId]; const _bvo = _k?.omvang ? Number(_k.omvang) : 0;
-          fbPush('matches', {kid:ex.newMatchKansId,links:ex.newMatchDevIds||[],coals:[],stage:newStage,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:newStage,at:today()}],ownerId:null,bvo:_bvo,bkm2:_hd.bkm2,honPct:_hd.honPct,omzet:0,honorarium:0});
+          fbPush('matches', {kid:ex.newMatchKansId,links:ex.newMatchDevIds||[],coals:[],stage:newStage,notitie:'',col:false,so:cnt,createdAt:today(),updatedAt:today(),stageHistory:[{stage:newStage,at:today()}],ownerId:null,bvo:_bvo,bkm2:_hd.bkm2,honPct:_hd.honPct,honorarium:0});
           STATE.ui.modal = null; renderModal();
         }
         break;
