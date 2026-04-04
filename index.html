@@ -829,7 +829,8 @@ function renderHeader(c, devs, kansen, matches, alarms) {
       <div class="header-stat"><div class="header-stat-val">${devs.length}</div><div class="header-stat-lbl">devs</div></div>
       <div class="header-stat"><div class="header-stat-val">${kansen.length}</div><div class="header-stat-lbl">kansen</div></div>
       <div class="header-stat"><div class="header-stat-val">${matches.length}</div><div class="header-stat-lbl">matches</div></div>
-      ${(() => { const gw = matches.reduce((s,m) => s + (m.honorarium||0) * stagePct(m.stage) / 100, 0); return gw > 0 ? `<div class="header-stat"><div class="header-stat-val">${fmtEuro(Math.round(gw))}</div><div class="header-stat-lbl">verwacht</div></div>` : ''; })()}
+      ${(() => { const gw = matches.reduce((s,m) => s + (m.honorarium||0) * stagePct(m.stage) / 100, 0); return gw > 0 ? `<div class="header-stat" style="cursor:pointer" data-action="showFinOverview" title="Financieel overzicht"><div class="header-stat-val">${fmtEuro(Math.round(gw))}</div><div class="header-stat-lbl">verwacht</div></div>` : ''; })()}
+      <button data-noprint title="Financieel overzicht" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="showFinOverview"><span class="header-icon">\uD83D\uDCB0</span></button>
       <button data-noprint title="Bekijk alerts" class="btn header-btn" style="background:${al>0?c.rood:(STATE.ui.dark?'#444':'#000')}" data-action="showAlerts"><span class="header-icon">\u26A0</span> ${al} alert${al!==1?'s':''}</button>
       <button data-noprint title="${STATE.ui.dark?'Licht thema':'Donker thema'}" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="toggleDark"><span class="header-icon">${STATE.ui.dark?'\u2600':'\u263E'}</span></button>
       <button data-noprint title="Print het board" class="btn header-btn header-btn-icon" style="background:${STATE.ui.dark?'#444':'#000'}" data-action="print"><span class="header-icon">\uD83D\uDDA8</span></button>
@@ -984,7 +985,7 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
       html += '</div></div>';
 
       if (!isKC) {
-        html += `<div style="font-size:10px;color:${c.txtSecondary};font-weight:300;margin-top:2px">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
+        html += `<div style="font-size:10px;color:${c.txtSecondary};font-weight:300;margin-top:2px">${kans.omvang ? 'BVO '+esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
         if (kans.adres) {
           html += `<div style="font-size:10px;margin-top:1px;font-weight:300">`;
           if (mp) html += `<a href="${mp}" target="_blank" rel="noopener noreferrer" style="color:${c.blauw};text-decoration:none">\uD83D\uDCCD ${esc(kans.adres)}</a>`;
@@ -1015,7 +1016,7 @@ function renderKansenPanel(c, unmatched, kcs, matches) {
       html += `<button class="btn-xs" style="background:${c.lichtgrijs};border:none;border-radius:3px;cursor:pointer;color:${c.grijs};font-family:inherit" data-action="editKans" data-id="${kans.id}" title="Kans bewerken">\u270E</button>`;
       html += '</div></div>';
       if (!isKC) {
-        html += `<div style="font-size:10px;color:${c.txtSecondary};font-weight:300;margin-top:2px">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
+        html += `<div style="font-size:10px;color:${c.txtSecondary};font-weight:300;margin-top:2px">${kans.omvang ? 'BVO '+esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
         if (kans.adres && mp) {
           html += `<div style="font-size:10px;margin-top:1px;font-weight:300"><a href="${mp}" target="_blank" rel="noopener noreferrer" style="color:${c.blauw};text-decoration:none">\uD83D\uDCCD ${esc(kans.adres)}</a></div>`;
         }
@@ -1125,13 +1126,13 @@ function renderMatchCard(c, match, stage, devs, dts) {
   html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
   if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0">(${tl})</span>`;
   if (match.locked) html += `<span style="font-size:11px;color:${c.grijs};flex-shrink:0;opacity:0.5" title="Vergrendeld">\uD83D\uDD12</span>`;
-  html += match.honorarium ? `<span style="font-size:10px;flex-shrink:0" title="${fmtEuro(match.honorarium)}">\uD83D\uDCB0</span>` : `<span style="font-size:10px;flex-shrink:0;position:relative;opacity:0.5" title="Geen honorarium ingevuld">\uD83D\uDCB0<span style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:${c.rood};transform:rotate(-45deg)"></span></span>`;
+  if (!match.honorarium) html += `<span style="font-size:10px;flex-shrink:0;position:relative;opacity:0.5" title="Geen honorarium ingevuld">\uD83D\uDCB0<span style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:${c.rood};transform:rotate(-45deg)"></span></span>`;
   html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33">${esc(stage.short)}</span>`;
   html += '</div>';
 
   // Uitgeklapte inhoud
   if (!isC) {
-    html += `<div style="font-size:11px;color:${c.grijs};margin-top:4px;font-weight:300">${kans.omvang ? esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
+    html += `<div style="font-size:11px;color:${c.grijs};margin-top:4px;font-weight:300">${kans.omvang ? 'BVO '+esc(kans.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(kans.type||'')}</div>`;
     if (kans.adres) {
       html += '<div style="font-size:11px;margin-top:2px;font-weight:300">';
       if (mp) html += `<a href="${mp}" target="_blank" rel="noopener noreferrer" style="color:${c.blauw};text-decoration:none">\uD83D\uDCCD ${esc(kans.adres)}</a>`;
@@ -1252,6 +1253,7 @@ function renderModal() {
     case 'stageGate': { w=400; title=modalExtra?.q||'Bevestigen'; body = renderStageGateModal(c); break; }
     case 'admin': { w=440; title='\u2699 Admin'; body = renderAdminModal(c); break; }
     case 'help': { w=540; title='? Help'; body = renderHelpModal(c); break; }
+    case 'finOverview': { w=700; title='\uD83D\uDCB0 Financieel overzicht'; body = renderFinOverviewModal(c); break; }
   }
 
   html += `<div class="modal" style="max-width:${w}px" data-action="modalBody">`;
@@ -1366,7 +1368,7 @@ function renderPickKansModal(c) {
   unm.forEach(k => {
     html += `<div style="padding:8px 10px;border-radius:3px;border:1px solid ${c.kaartBorder};cursor:pointer;background:${c.kaart}" data-action="pickKans" data-id="${k.id}">
       <div style="font-weight:500;font-size:13px">${esc(k.name||'Naamloos')}</div>
-      <div style="font-size:10px;color:${c.grijs};font-weight:300">${k.omvang ? esc(k.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(k.type||'')}</div>
+      <div style="font-size:10px;color:${c.grijs};font-weight:300">${k.omvang ? 'BVO '+esc(k.omvang)+'m\u00B2 \u00B7 ' : ''}${esc(k.type||'')}</div>
     </div>`;
   });
   html += '</div>';
@@ -1535,6 +1537,85 @@ function renderStageGateModal(c) {
       <button class="btn" style="background:${checked?'#000':c.zachtgrijs};color:${checked?'#fff':c.grijs};cursor:${checked?'pointer':'not-allowed'}" ${checked?'data-action="confirmStageGate"':''}>Bevestig</button>
     </div>`;
 }
+
+function renderFinOverviewModal(c) {
+  const matches = objToArr(STATE.data.matches).sort((a,b) => {
+    const si = s => ({matches:0,verkennend:1,offerte:2,actief:3}[s]||0);
+    return si(a.stage) - si(b.stage) || (a.so||0) - (b.so||0);
+  });
+  const edits = STATE.ui.modalData?.finEdits || {};
+  const getVal = (mid, field, orig) => edits[mid]?.[field] !== undefined ? edits[mid][field] : orig;
+  let totalHon = 0;
+  let totalGw = 0;
+  let html = `<div style="font-size:11px;color:${c.grijs};margin-bottom:10px;font-weight:300">Bewerk BVO, bouwkosten/m\u00B2, honorarium% en honorarium per match. Wijzigingen worden direct opgeslagen.</div>`;
+  html += `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">`;
+  html += `<thead><tr style="border-bottom:2px solid ${c.zachtgrijs};text-align:left">
+    <th style="padding:6px 4px;font-weight:600;min-width:120px">Kans</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:center">Fase</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:right;min-width:70px">BVO</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:right;min-width:70px">BK/m\u00B2</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:right;min-width:50px">%</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:right;min-width:80px">Honorarium</th>
+    <th style="padding:6px 4px;font-weight:600;text-align:right;min-width:70px">Gewogen</th>
+  </tr></thead><tbody>`;
+  let prevStage = '';
+  matches.forEach(m => {
+    const kans = STATE.data.kansen[m.kid];
+    if (!kans) return;
+    const sc = stageColor(m.stage);
+    const stage = STAGES.find(s => s.id === m.stage);
+    const bvo = getVal(m.id, 'bvo', m.bvo||0);
+    const bkm2 = getVal(m.id, 'bkm2', m.bkm2||0);
+    const honPct = getVal(m.id, 'honPct', m.honPct||0);
+    const hon = getVal(m.id, 'honorarium', m.honorarium||0);
+    const gw = Math.round(hon * stagePct(m.stage) / 100);
+    totalHon += hon;
+    totalGw += gw;
+    const stageChanged = m.stage !== prevStage;
+    prevStage = m.stage;
+    html += `<tr style="${stageChanged?'border-top:2px solid '+sc+'44':''};border-bottom:1px solid ${c.zachtgrijs}22">
+      <td style="padding:5px 4px;font-weight:400">${esc(kans.name)}</td>
+      <td style="padding:5px 4px;text-align:center"><span class="stage-badge" style="color:${sc};background:${stageBg(m.stage)};border:1px solid ${sc}33;font-size:8px">${esc(stage?.short||'?')}</span></td>
+      <td style="padding:2px 1px"><input type="number" min="0" value="${bvo||''}" style="width:100%;text-align:right;padding:3px 4px;border:1px solid ${c.zachtgrijs};border-radius:2px;font-size:11px;font-family:inherit;background:${c.kaart};color:${c.txtPrimary}" oninput="KB.finEdit('${m.id}','bvo',this.value)"></td>
+      <td style="padding:2px 1px"><input type="number" min="0" value="${bkm2||''}" style="width:100%;text-align:right;padding:3px 4px;border:1px solid ${c.zachtgrijs};border-radius:2px;font-size:11px;font-family:inherit;background:${c.kaart};color:${c.txtPrimary}" oninput="KB.finEdit('${m.id}','bkm2',this.value)"></td>
+      <td style="padding:2px 1px"><input type="number" min="0" max="100" step="0.5" value="${honPct||''}" style="width:100%;text-align:right;padding:3px 4px;border:1px solid ${c.zachtgrijs};border-radius:2px;font-size:11px;font-family:inherit;background:${c.kaart};color:${c.txtPrimary}" oninput="KB.finEdit('${m.id}','honPct',this.value)"></td>
+      <td style="padding:5px 4px;text-align:right;font-weight:500;color:${hon?c.txtPrimary:c.grijs}">${hon ? fmtEuro(hon) : '\u2014'}</td>
+      <td style="padding:5px 4px;text-align:right;color:${sc};font-weight:400">${gw ? fmtEuro(gw) : '\u2014'}</td>
+    </tr>`;
+  });
+  html += `<tr style="border-top:2px solid ${c.zachtgrijs}">
+    <td colspan="5" style="padding:6px 4px;font-weight:600;text-align:right">Totaal</td>
+    <td style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalHon)}</td>
+    <td style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalGw)}</td>
+  </tr>`;
+  html += '</tbody></table></div>';
+  return html;
+}
+KB.finEdit = function(matchId, field, value) {
+  const md = STATE.ui.modalData; if (!md) return;
+  if (!md.finEdits) md.finEdits = {};
+  if (!md.finEdits[matchId]) md.finEdits[matchId] = {};
+  const v = value ? Number(value) : 0;
+  md.finEdits[matchId][field] = v;
+  // Herbereken honorarium als bvo/bkm2/honPct wijzigt
+  const m = STATE.data.matches[matchId];
+  if (m && ['bvo','bkm2','honPct'].includes(field)) {
+    const bvo = md.finEdits[matchId].bvo !== undefined ? md.finEdits[matchId].bvo : (m.bvo||0);
+    const bkm2 = md.finEdits[matchId].bkm2 !== undefined ? md.finEdits[matchId].bkm2 : (m.bkm2||0);
+    const honPct = md.finEdits[matchId].honPct !== undefined ? md.finEdits[matchId].honPct : (m.honPct||0);
+    const omzet = Math.round(bvo * bkm2);
+    const honorarium = Math.round(omzet * honPct / 100);
+    md.finEdits[matchId].omzet = omzet;
+    md.finEdits[matchId].honorarium = honorarium;
+  }
+  // Direct opslaan naar Firebase
+  const upd = {};
+  upd[field] = v;
+  if (md.finEdits[matchId].omzet !== undefined) upd.omzet = md.finEdits[matchId].omzet;
+  if (md.finEdits[matchId].honorarium !== undefined) upd.honorarium = md.finEdits[matchId].honorarium;
+  upd.updatedAt = today();
+  fbUpdate(`matches/${matchId}`, upd);
+};
 
 function renderHelpModal(c) {
   const q = (STATE.ui.modalData?.helpSearch || '').toLowerCase();
@@ -2027,6 +2108,9 @@ function setupEventListeners() {
       case 'print': window.print(); break;
       case 'showAlerts':
         STATE.ui.modal = 'alerts'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
+        renderModal(); break;
+      case 'showFinOverview':
+        STATE.ui.modal = 'finOverview'; STATE.ui.modalData = {finEdits:{}}; STATE.ui.modalExtra = null;
         renderModal(); break;
       case 'showHelp':
         STATE.ui.modal = 'help'; STATE.ui.modalData = {helpSearch:'',helpOpen:{}}; STATE.ui.modalExtra = null;
