@@ -1780,7 +1780,7 @@ KB.finEdit = function(matchId, field, value) {
   upd.updatedAt = today();
   fbUpdate(`matches/${matchId}`, upd);
   // Live visuele feedback: update honorarium + gewogen kolommen
-  if (['bvo','bkm2','honPct'].includes(field)) {
+  if (['bvo','bkm2','honPct','units','pricePerUnit'].includes(field)) {
     const ae = document.activeElement;
     renderModal();
     if (ae?.dataset) {
@@ -2097,6 +2097,7 @@ KB.importBackup = async function(file) {
         updates['/matches'] = data.matches || {};
         if (data.users) updates['/users'] = data.users;
         await db.ref().update(updates);
+        const fi = document.getElementById('import-file-input'); if (fi) fi.value = '';
         STATE.ui.modal = 'admin'; STATE.ui.modalData = {bkMsg:'Backup hersteld!',bkOk:true}; renderModal();
         showToast('Backup hersteld');
       } catch(err) {
@@ -2285,15 +2286,16 @@ function setupEventListeners() {
         return;
       }
       if (STATE.ui._mapInstance) { STATE.ui._mapInstance.remove(); STATE.ui._mapInstance = null; }
+      const returnMap = STATE.ui._returnToMap;
       if (STATE.ui.modalDirty) {
         showConfirm('Wijzigingen niet opgeslagen. Toch sluiten?', () => {
-          STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
-          STATE.ui.modalDirty = false; renderModal();
+          STATE.ui.modalDirty = false;
+          if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
+          else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
         }); return;
       }
-      STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
-      STATE.ui.modalDirty = false;
-      renderModal();
+      if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); initMapModal(); }
+      else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); }
     }
   });
 
@@ -2560,8 +2562,12 @@ function setupEventListeners() {
           const newBvo = k.omvang ? Number(k.omvang) : 0;
           objToArr(STATE.data.matches).filter(m => m.kid === k.id).forEach(m => {
             if ((m.bvo||0) !== newBvo) {
-              const hon = Math.round(newBvo * (m.bkm2||0) * (m.honPct||0) / 100);
-              fbUpdate(`matches/${m.id}`, {bvo:newBvo, honorarium:hon, updatedAt:today()});
+              const upd = {bvo:newBvo, updatedAt:today()};
+              // Alleen honorarium herberekenen voor bvo-type matches
+              if (!m.calcType || m.calcType === 'bvo') {
+                upd.honorarium = Math.round(newBvo * (m.bkm2||0) * (m.honPct||0) / 100);
+              }
+              fbUpdate(`matches/${m.id}`, upd);
             }
           });
         }
@@ -2864,7 +2870,8 @@ function setupEventListeners() {
             const kans = STATE.data.kansen[m.kid];
             STATE.ui.modal = 'editMatch';
             STATE.ui.modalData = {...m, id:mid, stage:newStage, links:[...(m.links||[])], coals:JSON.parse(JSON.stringify(m.coals||[])),
-              bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0), bkm2: m.bkm2 || 0, honPct: m.honPct || 0, _calcOpen: false
+              bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0), bkm2: m.bkm2 || 0, honPct: m.honPct || 0,
+              calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0, _calcOpen: !(m.honorarium)
             };
             STATE.ui.modalExtra = null;
             renderModal();
