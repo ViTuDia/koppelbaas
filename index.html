@@ -194,7 +194,7 @@
 
     /* ─── MOBIEL (< 768px) ─── */
     @media (max-width: 767px) {
-      html, body { overflow: hidden; position: fixed; width: 100%; }
+      html, body { overflow: hidden; }
 
       /* Header compact */
       .header { padding: 10px 12px; gap: 6px; }
@@ -2436,7 +2436,8 @@ function setupEventListeners() {
       case 'sendFeedback': {
         const md = STATE.ui.modalData; if (!md) break;
         if (!md.fbMsg || !md.fbMsg.trim()) { md.fbSent = ''; renderModal(); break; }
-        fbPush('feedback', {type:md.fbType||'bug', msg:md.fbMsg.trim(), at:new Date().toISOString(), ua:navigator.userAgent}).then(() => {
+        const fbRef = db.ref('feedback').push();
+        fbRef.set({type:md.fbType||'bug', msg:md.fbMsg.trim(), at:new Date().toISOString(), ua:navigator.userAgent}).then(() => {
           md.fbMsg = ''; md.fbSent = 'Bedankt! Feedback verstuurd.'; renderModal();
         }).catch(err => { md.fbSent = 'Fout: '+err.message; renderModal(); });
         break;
