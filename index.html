@@ -220,9 +220,9 @@
 
       /* Main: stacked, overflow hidden zodat flex scroll-keten werkt */
       .main { flex-direction: column; overflow: hidden; }
-      .left-panels { width: 100%; flex-direction: column; border-right: none; border-bottom: 1px solid var(--zachtgrijs); flex: 1; min-height: 0; }
+      .left-panels { width: 100%; flex-direction: column; border-right: none; flex: 1; min-height: 0; }
       .panel { width: 100%; padding: 12px; flex: 1; min-height: 0; }
-      .panel:first-child { border-right: none; border-bottom: 1px solid var(--zachtgrijs); }
+      .panel:first-child { border-right: none; border-bottom: none; }
 
       /* Mobiele tab-navigatie */
       .mob-tabs {
@@ -247,7 +247,6 @@
       body.mob-view-devs .main .left-panels .panel:last-child { display: none; }
       body.mob-view-kansen .main .left-panels { display: flex; flex-direction: column; }
       body.mob-view-kansen .main .left-panels .panel:first-child { display: none; }
-      body.mob-view-kansen .main .left-panels .panel:last-child { border-bottom: none; }
       body.mob-view-pipeline .main .pipeline { display: flex; flex-direction: column; }
 
       /* Pipeline kolommen: stacked met tabs */
