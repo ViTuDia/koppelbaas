@@ -1715,7 +1715,7 @@ function renderMapModal(c) {
   return `<div id="map-container" style="width:100%;height:60vh"></div>
     <div class="map-status" id="map-status">${noAddr ? noAddr + ' kans(en) zonder adres' : ''}</div>
     <div class="map-legend">
-      <span><span class="map-legend-dot" style="background:#878786"></span> Ongematchte kans</span>
+      <span><span class="map-legend-dot" style="background:#c97b1a"></span> Ongematchte kans</span>
       <span><span class="map-legend-dot" style="background:${stageColor('matches')}"></span> Potentieel</span>
       <span><span class="map-legend-dot" style="background:${stageColor('verkennend')}"></span> Verkennend</span>
       <span><span class="map-legend-dot" style="background:${stageColor('offerte')}"></span> Offerte</span>
@@ -1730,7 +1730,7 @@ function kansStageColor(kansId) {
     const o = order[m.stage]||0;
     if (o > best) { best = o; bestStage = m.stage; }
   });
-  return bestStage ? stageColor(bestStage) : '#878786';
+  return bestStage ? stageColor(bestStage) : '#c97b1a';
 }
 
 async function initMapModal() {
@@ -1785,7 +1785,7 @@ function addMapMarker(map, kans, lat, lng) {
   const stageInfo = matches.length > 0 ? matches.map(m => {
     const s = STAGES.find(st => st.id === m.stage);
     return `<span style="display:inline-block;padding:1px 6px;font-size:9px;border-radius:2px;color:${stageColor(m.stage)};background:${stageBg(m.stage)};border:1px solid ${stageColor(m.stage)}33">${esc(s?.short||'?')}</span>`;
-  }).join(' ') : '<span style="font-size:10px;color:#878786">Ongematchte kans</span>';
+  }).join(' ') : '<span style="font-size:10px;color:#c97b1a;font-weight:500">Ongematchte kans</span>';
   const marker = L.circleMarker([lat, lng], {
     radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.85
   }).addTo(map);
