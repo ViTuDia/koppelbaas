@@ -1916,88 +1916,45 @@ function renderHelpModal(c) {
   const q = (STATE.ui.modalData?.helpSearch || '').toLowerCase();
   const chapters = [
     {id:'overzicht', title:'Overzicht', body:`
-      <b>De Koppelbaas</b> is het acquisitie-dashboard van ARD / AtelierRuimDenkers. Het koppelt <b>ontwikkelaars</b> aan <b>kansen</b> (vastgoedprojecten) tot <b>matches</b> die door een kanban-pipeline bewegen.<br><br>
-      Het scherm heeft drie delen:<br>
-      \u2022 <b>Links</b>: ontwikkelaars-paneel en kansen-paneel<br>
-      \u2022 <b>Rechts</b>: de pipeline met 4 fases<br>
-      \u2022 <b>Header</b>: statistieken, alerts, instellingen`},
+      <b>Links</b>: ontwikkelaars + kansen \u00B7 <b>Rechts</b>: pipeline (4 fases) \u00B7 <b>Header</b>: stats + knoppen<br><br>
+      Sleep een kans naar de pipeline \u2192 koppel ontwikkelaars \u2192 schuif door de fases.`},
     {id:'devs', title:'Ontwikkelaars', body:`
-      Het linkerpaneel toont alle ontwikkelaars, gegroepeerd per type (Puur sang, Ontw. bouwer, Investeerder, etc.).<br><br>
-      \u2022 <b>Toevoegen</b>: klik de <b>+</b> knop naast "Ontwikkelaars"<br>
-      \u2022 <b>Bewerken</b>: dubbelklik op een ontwikkelaar<br>
-      \u2022 <b>Selecteren</b>: klik op een ontwikkelaar \u2192 pipeline markeert alle matches waar die dev in zit<br>
-      \u2022 <b>Categorieën</b>: klik op het potloodje naast een type om te bewerken. Categorieën zijn versleepbaar om de volgorde te wijzigen<br>
-      \u2022 <b>Badge</b>: het getal achter een ontwikkelaar toont in hoeveel matches die voorkomt`},
+      <b>+</b> toevoegen \u00B7 <b>dubbelklik</b> bewerken \u00B7 <b>klik</b> selecteren (markeert matches)<br>
+      Badge = aantal matches \u00B7 Potloodje = categorie bewerken`},
     {id:'kansen', title:'Kansen', body:`
-      Het rechter zijpaneel toont alle <b>ongematchte</b> kansen (die nog niet in de pipeline staan), gegroepeerd per gebied.<br><br>
-      \u2022 <b>Toevoegen</b>: klik de <b>+</b> knop naast "Kansen"<br>
-      \u2022 <b>Bewerken</b>: dubbelklik op een kans<br>
-      \u2022 <b>BVO</b>: bruto vloeroppervlak in m\u00B2, wordt gebruikt als basis voor honorariumberekening<br>
-      \u2022 <b>Match maken</b>: sleep een kans naar een pipeline-kolom \u2192 kies ontwikkelaar(s) \u2192 match aangemaakt`},
-    {id:'pipeline', title:'Pipeline (4 fases)', body:`
-      De pipeline heeft 4 fases, van links naar rechts:<br><br>
-      <b>1. Potentiële matches</b> \u2014 eerste verkenning, nog vrijblijvend<br>
-      <b>2. Verkennende gesprekken</b> \u2014 concrete gesprekken, min. 2 koppelingen nodig<br>
-      <b>3. Offertetraject</b> \u2014 er wordt een offerte gemaakt, min. 2 koppelingen<br>
-      <b>4. Lopend werk</b> \u2014 opdracht is binnen, min. 2 koppelingen<br><br>
-      Kaarten verplaatsen: sleep een kaart naar een andere kolom. Bij verplaatsing naar een verdere fase verschijnt een bevestigingsvenster.<br>
-      <b>Vergrendelen</b>: klik het slotje om een kaart vast te zetten in de huidige kolom.`},
-    {id:'matches', title:'Matches maken en bewerken', body:`
-      Een match koppelt een kans aan één of meer ontwikkelaars.<br><br>
-      <b>Match aanmaken:</b><br>
-      \u2022 Sleep een kans uit het kansen-paneel naar een pipeline-kolom<br>
-      \u2022 Of klik de <b>+ Nieuwe match</b> knop onderaan een kolom<br><br>
-      <b>Match bewerken:</b><br>
-      \u2022 Dubbelklik op een match-kaart<br>
-      \u2022 In het bewerkscherm: notitie, fase, ontwikkelaars aan/uit vinken<br>
-      \u2022 Ontwikkelaars in een coalitie staan gemarkeerd met "coalitie"<br><br>
-      <b>Selectie:</b> klik op een match-kaart \u2192 het ontwikkelaars-paneel markeert de gekoppelde devs.`},
-    {id:'coalities', title:'Coalities', body:`
-      Een coalitie is een groep ontwikkelaars die samen als één partij optreden.<br><br>
-      \u2022 Open een match (dubbelklik) \u2192 klik <b>+ Coalitie</b><br>
-      \u2022 Vink de deelnemers aan \u2192 klik Opslaan<br>
-      \u2022 Coalities tellen als 1 koppeling (ook al zitten er 3 devs in)<br>
-      \u2022 Een dev in een coalitie kan niet los ontkoppeld worden \u2014 bewerk of verwijder de coalitie`},
+      Toont <b>ongematchte</b> kansen per gebied.<br>
+      <b>+</b> toevoegen \u00B7 <b>dubbelklik</b> bewerken \u00B7 <b>sleep naar pipeline</b> = match maken<br>
+      BVO (m\u00B2) is de basis voor honorariumberekening.`},
+    {id:'pipeline', title:'Pipeline', body:`
+      <b>Potentieel</b> \u2192 <b>Verkennend</b> (min. 2) \u2192 <b>Offerte</b> (min. 2) \u2192 <b>Lopend werk</b> (min. 2)<br><br>
+      Sleep kaarten tussen kolommen. Slotje = vergrendeld in kolom.`},
+    {id:'matches', title:'Matches', body:`
+      <b>Aanmaken</b>: sleep kans naar pipeline, of klik <b>+ Nieuwe match</b><br>
+      <b>Bewerken</b>: dubbelklik op kaart \u2192 notitie, fase, devs aan/uit<br>
+      <b>Coalitie</b>: groep devs als \u00E9\u00E9n partij \u2192 telt als 1 koppeling`},
     {id:'financieel', title:'Financieel', body:`
-      Per match kun je het verwachte honorarium bijhouden.<br><br>
-      <b>Handmatig:</b> vul BVO (m\u00B2) en Honorarium (\u20AC) direct in bij het bewerken van een match.<br><br>
-      <b>Calculator:</b> klik op "\uD83D\uDCB0 Honorariumcalculator" in het bewerkscherm:<br>
-      \u2022 Vul bouwkosten/m\u00B2 en honorarium% in (of gebruik de bureau-standaarden)<br>
-      \u2022 Formule: BVO \u00D7 bouwkosten/m\u00B2 \u00D7 honorarium% = honorarium<br>
-      \u2022 Het resultaat vult het honorariumveld automatisch in<br><br>
-      <b>Gewogen pipeline:</b><br>
-      \u2022 Elke fase heeft een conversiepercentage (instelbaar in Admin)<br>
-      \u2022 Standaard: Matches 10%, Verkennend 25%, Offerte 50%, Actief 100%<br>
-      \u2022 De header toont het totaal verwachte honorarium<br>
-      \u2022 Per kolom: totaal honorarium en gewogen waarde<br>
-      \u2022 \uD83D\uDCB0 op een kaart = honorarium ingevuld. <span style="position:relative;display:inline-block">\uD83D\uDCB0<span style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:${c.rood};transform:rotate(-45deg)"></span></span> = nog niet ingevuld`},
+      Per match: vul <b>BVO</b> + <b>honorarium</b> in, of gebruik de calculator:<br>
+      \u2022 <b>BVO</b>: BVO \u00D7 bouwkosten/m\u00B2 \u00D7 %<br>
+      \u2022 <b>Units</b>: aantal \u00D7 prijs per unit<br>
+      \u2022 <b>Vast</b>: direct bedrag invullen<br><br>
+      Kolomheaders tonen: totaal \u2192 conversie% \u2192 <b>gewogen waarde</b>.<br>
+      Klik <b>"verwacht"</b> in de header voor het financi\u00EBle overzicht.`},
     {id:'alerts', title:'Alerts', body:`
-      Het alert-systeem waarschuwt als matches te weinig koppelingen hebben.<br><br>
-      \u2022 <b>Rood</b>: geen enkele koppeling \u2014 de match heeft niemand<br>
-      \u2022 <b>Oranje</b>: te weinig koppelingen (bijv. 1 waar er 2 nodig zijn)<br>
-      \u2022 <b>Groen</b>: voldoende koppelingen<br><br>
-      De alert-knop in de header toont het aantal waarschuwingen. Klik erop voor een overzicht met directe links naar de matches.`},
-    {id:'instellingen', title:'Instellingen (Admin)', body:`
-      Klik het tandwiel \u2699 rechtsboven om bij de instellingen te komen:<br><br>
-      \u2022 <b>Wachtwoord wijzigen</b>: voor de login van de app<br>
-      \u2022 <b>Conversiepercentages</b>: per fase het verwachte slagingspercentage instellen<br>
-      \u2022 <b>Honorarium standaarden</b>: bureau-brede bouwkosten/m\u00B2 en honorarium% (worden gebruikt als default in de calculator)<br>
-      \u2022 <b>Backup</b>: download alle data als JSON, of herstel vanuit een backup<br>
-      \u2022 <b>Uitloggen</b>: sessie beëindigen`},
-    {id:'mobiel', title:'Mobiel gebruik', body:`
-      Op telefoon/tablet schakelt de app over naar een tab-indeling:<br><br>
-      \u2022 <b>Devs</b> / <b>Kansen</b> / <b>Pipeline</b> tabs onderaan het scherm<br>
-      \u2022 In de pipeline: bovenaan stage-tabs om tussen fases te wisselen<br>
-      \u2022 Drag & drop werkt met <b>lang indrukken</b> (200ms) en dan slepen<br>
-      \u2022 Kaarten verplaatsen kan ook via de <b>move-knoppen</b> die onder uitgeklapte kaarten verschijnen<br>
-      \u2022 Dubbelklik werkt gewoon voor bewerken`},
-    {id:'tips', title:'Tips & sneltoetsen', body:`
-      \u2022 <b>Escape</b>: sluit het actieve venster<br>
-      \u2022 <b>Dubbelklik</b>: bewerk een ontwikkelaar, kans of match<br>
-      \u2022 <b>Zoekbalken</b>: type in de zoekbalk boven het dev- of kansen-paneel om te filteren<br>
-      \u2022 <b>Resize</b>: sleep de scheidslijn tussen panelen en pipeline om de breedte aan te passen<br>
-      \u2022 <b>Dark mode</b>: klik het zon/maan-icoontje<br>
-      \u2022 <b>Printen</b>: klik het printer-icoontje voor een landscape-afdruk van het hele bord`}
+      <span style="color:${c.rood}">\u25CF</span> geen koppelingen \u00B7
+      <span style="color:#c97b1a">\u25CF</span> te weinig \u00B7
+      <span style="color:${c.groen}">\u25CF</span> voldoende<br>
+      Klik de alert-knop in de header voor een overzicht.`},
+    {id:'kaart', title:'Kaart', body:`
+      Klik <b>\uD83D\uDDFA</b> in de header \u2192 alle kansen op een interactieve kaart.<br>
+      <span style="color:#c22d0b">\u25CF</span> ongematcht \u00B7 gekleurde bolletjes = pipeline-fase \u00B7 rode rand = alert`},
+    {id:'instellingen', title:'Instellingen', body:`
+      Via <b>\u2699</b> rechtsboven: wachtwoord, conversie%, honorarium-defaults, backup, feedback, uitloggen.`},
+    {id:'mobiel', title:'Mobiel', body:`
+      Tabs onderaan: <b>Devs</b> / <b>Kansen</b> / <b>Pipeline</b><br>
+      <b>Lang indrukken</b> = slepen \u00B7 <b>Move-knoppen</b> onder kaarten \u00B7 <b>Dubbelklik</b> = bewerken`},
+    {id:'tips', title:'Tips', body:`
+      <b>Escape</b> sluit vensters \u00B7 <b>Dubbelklik</b> bewerkt alles \u00B7 <b>Zoekbalk</b> filtert devs/kansen<br>
+      Sleep de <b>scheidslijn</b> om paneel-breedte aan te passen.`}
   ];
   const filtered = q ? chapters.filter(ch => ch.title.toLowerCase().includes(q) || ch.body.toLowerCase().includes(q)) : chapters;
   const open = STATE.ui.modalData?.helpOpen || {};
