@@ -1737,8 +1737,11 @@ async function initMapModal() {
   const container = document.getElementById('map-container');
   if (!container || typeof L === 'undefined') return;
   const map = L.map('map-container').setView([51.92, 4.48], 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  const tileUrl = STATE.ui.dark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  L.tileLayer(tileUrl, {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
   }).addTo(map);
   STATE.ui._mapInstance = map;
 
@@ -1797,6 +1800,7 @@ function addMapMarker(map, kans, lat, lng) {
 }
 KB.mapEditKans = function(kansId) {
   if (STATE.ui._mapInstance) { STATE.ui._mapInstance.remove(); STATE.ui._mapInstance = null; }
+  STATE.ui._returnToMap = true;
   const k = STATE.data.kansen[kansId];
   if (k) { STATE.ui.modal = 'editKans'; STATE.ui.modalData = {...k, id:kansId}; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); }
 };
@@ -2459,7 +2463,10 @@ function setupEventListeners() {
             }
           });
         }
-        STATE.ui.modal = null; STATE.ui.modalDirty = false; renderModal(); showToast('Opgeslagen'); break;
+        STATE.ui.modalDirty = false;
+        if (STATE.ui._returnToMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; renderModal(); initMapModal(); }
+        else { STATE.ui.modal = null; renderModal(); }
+        showToast('Opgeslagen'); break;
       }
       case 'confirmDeleteKans': {
         const k = STATE.data.kansen[id];
@@ -2781,17 +2788,20 @@ function setupEventListeners() {
 
       // Modal sluiten
       case 'modalBody': break; // absorbeert clicks op lege modal-ruimte
-      case 'closeModal':
+      case 'closeModal': {
         if (STATE.ui._mapInstance) { STATE.ui._mapInstance.remove(); STATE.ui._mapInstance = null; }
+        const returnMap = STATE.ui._returnToMap;
         if (STATE.ui.modalDirty) {
           showConfirm('Wijzigingen niet opgeslagen. Sluiten?', () => {
-            STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
-            STATE.ui.modalDirty = false; renderModal();
+            STATE.ui.modalDirty = false;
+            if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
+            else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
           }); break;
         }
-        STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
-        STATE.ui.modalDirty = false;
-        renderModal(); break;
+        if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); initMapModal(); }
+        else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); }
+        break;
+      }
       case 'sysConfirmYes':
         if (_confirmCb) { const cb = _confirmCb; _confirmCb = null; _confirmPrev = null; cb(); }
         break;
