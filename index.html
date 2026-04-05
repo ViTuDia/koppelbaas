@@ -1784,14 +1784,21 @@ async function initMapModal() {
 }
 
 function addMapMarker(map, kans, lat, lng) {
-  const color = kansStageColor(kans.id);
-  const matches = objToArr(STATE.data.matches).filter(m => m.kid === kans.id);
-  const stageInfo = matches.length > 0 ? matches.map(m => {
+  const fillColor = kansStageColor(kans.id);
+  const kansMatches = objToArr(STATE.data.matches).filter(m => m.kid === kans.id);
+  // Alert-status bepalen: rood/oranje rand als koppelingen onvoldoende
+  let borderColor = '#fff';
+  if (kansMatches.length > 0) {
+    const worstAlert = kansMatches.reduce((w, m) => { const al = getAlertLevel(m); return al==='rood'?'rood':al==='oranje'&&w!=='rood'?'oranje':w; }, 'ok');
+    if (worstAlert === 'rood') borderColor = '#c22d0b';
+    else if (worstAlert === 'oranje') borderColor = '#c97b1a';
+  }
+  const stageInfo = kansMatches.length > 0 ? kansMatches.map(m => {
     const s = STAGES.find(st => st.id === m.stage);
     return `<span style="display:inline-block;padding:1px 6px;font-size:9px;border-radius:2px;color:${stageColor(m.stage)};background:${stageBg(m.stage)};border:1px solid ${stageColor(m.stage)}33">${esc(s?.short||'?')}</span>`;
   }).join(' ') : '<span style="font-size:10px;color:#c22d0b;font-weight:500">Ongematchte kans</span>';
   const marker = L.circleMarker([lat, lng], {
-    radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.85
+    radius: 8, fillColor: fillColor, color: borderColor, weight: borderColor==='#fff'?2:3, fillOpacity: 0.85
   }).addTo(map);
   marker.bindPopup(`<div style="font-family:Rubik,sans-serif;min-width:180px">
     <div style="font-weight:600;font-size:13px;margin-bottom:3px">${esc(kans.name)}</div>
