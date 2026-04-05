@@ -1987,9 +1987,20 @@ function renderAdminModal(c) {
         <button style="font-size:11px;color:${c.rood};background:none;border:1px solid ${c.rood}22;border-radius:3px;padding:4px 12px;cursor:pointer;font-family:inherit" data-action="logout">Uitloggen</button>
       </div>
     </div>
-    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px">
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Help</div>
       <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="showHelp">? Handleiding openen</button>
+    </div>
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Feedback</div>
+      <div style="font-size:11px;color:${c.grijs};margin-bottom:8px;font-weight:300">Bug melden of feature aanvragen</div>
+      <div class="field" style="margin-bottom:6px"><select onchange="KB.mf('fbType',this.value)" style="font-size:12px">
+        <option value="bug" ${(d.fbType||'bug')==='bug'?'selected':''}>Bug</option>
+        <option value="feature" ${d.fbType==='feature'?'selected':''}>Feature request</option>
+      </select></div>
+      <div class="field" style="margin-bottom:6px"><textarea placeholder="Beschrijf het probleem of idee\u2026" style="font-size:12px;min-height:60px" oninput="KB.mf('fbMsg',this.value)">${esc(d.fbMsg||'')}</textarea></div>
+      ${d.fbSent ? `<div style="font-size:11px;color:${c.groen};margin-bottom:6px">${esc(d.fbSent)}</div>` : ''}
+      <button class="btn btn-black btn-sm" data-action="sendFeedback">Verstuur</button>
     </div>`;
 }
 
@@ -2405,6 +2416,14 @@ function setupEventListeners() {
         fbUpdate('meta/stageKansen', pcts).then(() => {
           md.pctMsg = 'Percentages opgeslagen!'; md.pctOk = true; renderModal();
         }).catch(err => { md.pctMsg = 'Fout: '+err.message; md.pctOk = false; renderModal(); });
+        break;
+      }
+      case 'sendFeedback': {
+        const md = STATE.ui.modalData; if (!md) break;
+        if (!md.fbMsg || !md.fbMsg.trim()) { md.fbSent = ''; renderModal(); break; }
+        fbPush('feedback', {type:md.fbType||'bug', msg:md.fbMsg.trim(), at:new Date().toISOString(), ua:navigator.userAgent}).then(() => {
+          md.fbMsg = ''; md.fbSent = 'Bedankt! Feedback verstuurd.'; renderModal();
+        }).catch(err => { md.fbSent = 'Fout: '+err.message; renderModal(); });
         break;
       }
       case 'saveHonDefaults': {

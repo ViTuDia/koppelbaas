@@ -9,6 +9,7 @@
     "devs": { ".read": true, ".write": true },
     "kansen": { ".read": true, ".write": true },
     "matches": { ".read": true, ".write": true },
-    "users": { ".read": true, ".write": true }
+    "users": { ".read": true, ".write": true },
+    "feedback": { ".read": true, ".write": true }
   }
 }
