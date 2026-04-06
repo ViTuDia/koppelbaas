@@ -366,7 +366,6 @@
       <button class="mob-tab" data-tab="pipeline" onclick="KB.mobSwitch('pipeline')">
         <span class="mob-tab-icon" style="font-size:15px;font-weight:600;letter-spacing:0.5px">FLO</span><span class="mob-tab-label" data-tab-label="pipeline">Pipeline</span>
       </button>
-      <div class="mob-conn-dots" style="display:flex;align-items:center;gap:4px;padding:0 8px"></div>
     </div>
   </div>
 
@@ -1351,11 +1350,6 @@ function renderMatchCard(c, match, stage, devs, dts) {
 }
 
 function renderFooter(c) {
-  // Mobiele status-dot bijwerken
-  const mobDots = document.querySelector('.mob-conn-dots');
-  if (mobDots) {
-    mobDots.innerHTML = `<span class="conn-dot" title="${STATE.ui.connected?'Verbonden':'Offline'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0"></span>`;
-  }
   return `<div class="footer">
     <span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
     <span>Willem Buytewechstraat 45, Rotterdam</span>
@@ -2257,15 +2251,18 @@ KB.importBackup = async function(file) {
 KB.closeModal = function() {
   if (STATE.ui._mapInstance) { STATE.ui._mapInstance.remove(); STATE.ui._mapInstance = null; }
   const returnMap = STATE.ui._returnToMap;
+  const returnAdmin = STATE.ui._returnToAdmin;
+  const _doClose = () => {
+    if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
+    else if (returnAdmin) { STATE.ui._returnToAdmin = false; STATE.ui.modal = 'admin'; STATE.ui.modalData = {oldPw:'',newPw:'',newPw2:'',pwMsg:'',pwOk:false,pct_matches:stagePct('matches'),pct_verkennend:stagePct('verkennend'),pct_offerte:stagePct('offerte'),pct_actief:stagePct('actief'),pctMsg:'',pctOk:false,def_bkm2:honDefaults().bkm2,def_honPct:honDefaults().honPct,honMsg:'',honOk:false,act_matches:actionDefaults().matches,act_verkennend:actionDefaults().verkennend,act_offerte:actionDefaults().offerte,act_actief:actionDefaults().actief,actMsg:'',actOk:false}; STATE.ui.modalExtra = null; renderModal(); }
+    else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
+  };
   if (STATE.ui.modalDirty) {
     showConfirm('Wijzigingen niet opgeslagen. Toch sluiten?', () => {
-      STATE.ui.modalDirty = false;
-      if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
-      else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
+      STATE.ui.modalDirty = false; _doClose();
     }); return;
   }
-  if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); initMapModal(); }
-  else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); }
+  STATE.ui.modalDirty = false; _doClose();
 };
 // Geld-formatting: punten toevoegen na invullen, strippen bij focus
 document.addEventListener('blur', e => {
@@ -2587,6 +2584,7 @@ function setupEventListeners() {
         STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
         renderModal(); initMapModal(); break;
       case 'showHelp':
+        STATE.ui._returnToAdmin = (STATE.ui.modal === 'admin');
         STATE.ui.modal = 'help'; STATE.ui.modalData = {helpSearch:'',helpOpen:{}}; STATE.ui.modalExtra = null;
         renderModal(); break;
       case 'toggleHelpChapter': {
@@ -2654,6 +2652,7 @@ function setupEventListeners() {
         break;
       }
       case 'toggleFeature': {
+        showToast('Toggle: '+id);
         KB.toggleFeature(id);
         break;
       }
@@ -3079,15 +3078,16 @@ function setupEventListeners() {
       case 'closeModal': {
         if (STATE.ui._mapInstance) { STATE.ui._mapInstance.remove(); STATE.ui._mapInstance = null; }
         const returnMap = STATE.ui._returnToMap;
+        const returnAdmin = STATE.ui._returnToAdmin;
+        const _doClose = () => {
+          if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
+          else if (returnAdmin) { STATE.ui._returnToAdmin = false; STATE.ui.modal = 'admin'; STATE.ui.modalData = {oldPw:'',newPw:'',newPw2:'',pwMsg:'',pwOk:false,pct_matches:stagePct('matches'),pct_verkennend:stagePct('verkennend'),pct_offerte:stagePct('offerte'),pct_actief:stagePct('actief'),pctMsg:'',pctOk:false,def_bkm2:honDefaults().bkm2,def_honPct:honDefaults().honPct,honMsg:'',honOk:false,act_matches:actionDefaults().matches,act_verkennend:actionDefaults().verkennend,act_offerte:actionDefaults().offerte,act_actief:actionDefaults().actief,actMsg:'',actOk:false}; STATE.ui.modalExtra = null; renderModal(); }
+          else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
+        };
         if (STATE.ui.modalDirty) {
-          showConfirm('Wijzigingen niet opgeslagen. Toch sluiten?', () => {
-            STATE.ui.modalDirty = false;
-            if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); initMapModal(); }
-            else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; renderModal(); }
-          }); break;
+          showConfirm('Wijzigingen niet opgeslagen. Toch sluiten?', () => { STATE.ui.modalDirty = false; _doClose(); }); break;
         }
-        if (returnMap) { STATE.ui._returnToMap = false; STATE.ui.modal = 'map'; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); initMapModal(); }
-        else { STATE.ui.modal = null; STATE.ui.modalData = null; STATE.ui.modalExtra = null; STATE.ui.modalDirty = false; renderModal(); }
+        STATE.ui.modalDirty = false; _doClose();
         break;
       }
       case 'sysConfirmYes':
