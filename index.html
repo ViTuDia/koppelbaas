@@ -1351,17 +1351,14 @@ function renderMatchCard(c, match, stage, devs, dts) {
 }
 
 function renderFooter(c) {
-  const fb = STATE.data.meta?.feedback;
-  const hasFeedback = fb && Object.keys(fb).length > 0;
-  const fbUrl = 'https://console.firebase.google.com/project/atelierruimdenkers-d47d6/database/atelierruimdenkers-d47d6-default-rtdb/data/~2Fmeta~2Ffeedback';
-  // Mobiele status-dots bijwerken
+  // Mobiele status-dot bijwerken
   const mobDots = document.querySelector('.mob-conn-dots');
   if (mobDots) {
-    mobDots.innerHTML = `<span class="conn-dot" title="${STATE.ui.connected?'Verbonden':'Geen verbinding'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0"></span><span class="conn-dot" title="${hasFeedback?'Feedback ontvangen':'Geen feedback'}" style="background:${hasFeedback?'#c22d0b':'#007b2f'};margin:0"></span>`;
+    mobDots.innerHTML = `<span class="conn-dot" title="${STATE.ui.connected?'Verbonden':'Offline'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0"></span>`;
   }
   return `<div class="footer">
     <span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
-    <span>Willem Buytewechstraat 45, Rotterdam <span class="conn-dot" title="${STATE.ui.connected?'Verbonden':'Geen verbinding'}" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin-right:0;margin-left:6px"></span><a href="${fbUrl}" target="_blank" rel="noopener" title="${hasFeedback?'Feedback ontvangen \u2014 klik om te bekijken':'Geen openstaande feedback'}"><span class="conn-dot" style="background:${hasFeedback?'#c22d0b':'#007b2f'};margin-right:0;margin-left:4px;cursor:pointer"></span></a></span>
+    <span>Willem Buytewechstraat 45, Rotterdam</span>
   </div>`;
 }
 
@@ -2044,10 +2041,10 @@ function renderAdminModal(c) {
   const fb = STATE.data.meta?.feedback;
   const hasFeedback = fb && Object.keys(fb).length > 0;
   const fbUrl = 'https://console.firebase.google.com/project/atelierruimdenkers-d47d6/database/atelierruimdenkers-d47d6-default-rtdb/data/~2Fmeta~2Ffeedback';
-  const _toggle = (key, on) => `<div style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex-shrink:0" onclick="KB.toggleFeature('${key}')">
+  const _toggle = (key, on) => `<button type="button" style="position:relative;display:inline-block;width:40px;height:22px;cursor:pointer;flex-shrink:0;border:none;background:none;padding:0;-webkit-appearance:none" onclick="event.stopPropagation();KB.toggleFeature('${key}')">
     <span style="position:absolute;inset:0;border-radius:11px;background:${on?c.groen:c.zachtgrijs};transition:background .2s"></span>
     <span style="position:absolute;top:2px;left:${on?'20px':'2px'};width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
-  </div>`;
+  </button>`;
   return `
     <div style="margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Features</div>
@@ -2104,25 +2101,21 @@ function renderAdminModal(c) {
       <div style="font-size:10px;color:${c.grijs};margin-top:6px;font-weight:300">Plak deze URL in Google Calendar (Andere agenda \u2192 Via URL) of Apple Calendar (Abonneer).</div>
     </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Data</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Backup & export</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="exportBackup">\u2B07 Backup (JSON)</button>
         <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="exportExcel">\u2B07 Export (CSV)</button>
-        <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="triggerImport">\u2B06 Importeer backup</button>
+        <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="triggerImport">\u2B06 Herstel backup</button>
         <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="KB.importBackup(this.files[0])">
       </div>
       ${bkMsg ? `<div style="font-size:11px;margin-top:8px;color:${bkOk?c.groen:c.rood}">${esc(bkMsg)}</div>` : ''}
     </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Status</div>
-      <div style="display:flex;align-items:center;gap:12px;font-size:12px;font-weight:300;color:${c.grijs}">
-        <span style="display:flex;align-items:center;gap:6px"><span class="conn-dot" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0"></span>${STATE.ui.connected?'Verbonden':'Geen verbinding'}</span>
-        <a href="${fbUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;color:${c.grijs};text-decoration:none"><span class="conn-dot" style="background:${hasFeedback?'#c22d0b':'#007b2f'};margin:0"></span>${hasFeedback?'Feedback ontvangen':'Geen feedback'}</a>
-      </div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Handleiding</div>
+      <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="showHelp">Openen</button>
     </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Help & feedback</div>
-      <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs};margin-bottom:10px" data-action="showHelp">Handleiding openen</button>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Feedback</div>
       <div style="font-size:11px;color:${c.grijs};margin-bottom:8px;font-weight:300">Bug melden of feature aanvragen</div>
       <div class="field" style="margin-bottom:6px"><select onchange="KB.mf('fbType',this.value)" style="font-size:12px">
         <option value="bug" ${(d.fbType||'bug')==='bug'?'selected':''}>Bug</option>
@@ -2133,13 +2126,19 @@ function renderAdminModal(c) {
       <button class="btn btn-black btn-sm" data-action="sendFeedback">Verstuur</button>
     </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Account</div>
-      <div class="field"><label>Huidig wachtwoord</label><input type="password" value="${esc(d.oldPw||'')}" oninput="KB.mf('oldPw',this.value)"></div>
-      <div class="field"><label>Nieuw wachtwoord</label><input type="password" value="${esc(d.newPw||'')}" oninput="KB.mf('newPw',this.value)"></div>
-      <div class="field"><label>Herhaal nieuw wachtwoord</label><input type="password" value="${esc(d.newPw2||'')}" oninput="KB.mf('newPw2',this.value)"></div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Wachtwoord</div>
+      <div class="field"><label>Huidig</label><input type="password" value="${esc(d.oldPw||'')}" oninput="KB.mf('oldPw',this.value)"></div>
+      <div class="field"><label>Nieuw</label><input type="password" value="${esc(d.newPw||'')}" oninput="KB.mf('newPw',this.value)"></div>
+      <div class="field"><label>Herhaal nieuw</label><input type="password" value="${esc(d.newPw2||'')}" oninput="KB.mf('newPw2',this.value)"></div>
       ${pwMsg ? `<div style="font-size:11px;margin-bottom:8px;color:${pwOk?c.groen:c.rood}">${esc(pwMsg)}</div>` : ''}
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-        <button class="btn btn-black btn-sm" data-action="changePassword">Wijzig wachtwoord</button>
+      <button class="btn btn-black btn-sm" style="margin-top:4px" data-action="changePassword">Wijzig wachtwoord</button>
+    </div>
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:12px;font-size:11px;font-weight:300;color:${c.grijs}">
+          <span style="display:flex;align-items:center;gap:4px"><span class="conn-dot" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0"></span>${STATE.ui.connected?'Verbonden':'Offline'}</span>
+          ${hasFeedback?`<a href="${fbUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:4px;color:${c.rood};text-decoration:none"><span class="conn-dot" style="background:${c.rood};margin:0"></span>Feedback</a>`:''}
+        </div>
         <button style="font-size:11px;color:${c.rood};background:none;border:1px solid ${c.rood}22;border-radius:3px;padding:4px 12px;cursor:pointer;font-family:inherit" data-action="logout">Uitloggen</button>
       </div>
     </div>`;
