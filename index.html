@@ -2100,6 +2100,15 @@ function renderAdminModal(c) {
       </div>
       ${bkMsg ? `<div style="font-size:11px;margin-top:8px;color:${bkOk?c.groen:c.rood}">${esc(bkMsg)}</div>` : ''}
     </div>
+    <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px;${actionEnabled()?'':'display:none'}">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">\uD83D\uDCC5 Agenda-feed</div>
+      <div style="font-size:11px;color:${c.grijs};margin-bottom:8px;font-weight:300">Abonneer je agenda op de iCal feed om matches met geplande acties te zien.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input type="text" readonly value="https://europe-west1-atelierruimdenkers-d47d6.cloudfunctions.net/ical" style="flex:1;min-width:200px;padding:6px 8px;font-size:11px;border:1px solid ${c.zachtgrijs};border-radius:3px;background:${c.lichtgrijs};color:${c.txtPrimary};font-family:monospace" onclick="this.select()">
+        <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" onclick="navigator.clipboard.writeText('https://europe-west1-atelierruimdenkers-d47d6.cloudfunctions.net/ical').then(()=>KB.showToast('URL gekopieerd'))">Kopieer</button>
+      </div>
+      <div style="font-size:10px;color:${c.grijs};margin-top:6px;font-weight:300">Plak deze URL in Google Calendar (Andere agenda \u2192 Via URL) of Apple Calendar (Abonneer).</div>
+    </div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-bottom:20px">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Help</div>
       <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="showHelp">? Handleiding openen</button>
