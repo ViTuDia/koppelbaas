@@ -2095,6 +2095,7 @@ function renderAdminModal(c) {
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:${c.txtPrimary}">Database backup</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="exportBackup">\u2B07 Download backup</button>
+        <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="exportExcel">\u2B07 Download Excel</button>
         <button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="triggerImport">\u2B06 Importeer backup</button>
         <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="KB.importBackup(this.files[0])">
       </div>
@@ -2161,6 +2162,39 @@ KB.exportBackup = async function() {
     if (md) { md.bkMsg = 'Backup gedownload!'; md.bkOk = true; renderModal(); }
   } catch(e) {
     if (md) { md.bkMsg = 'Fout bij backup: ' + e.message; md.bkOk = false; renderModal(); }
+  }
+};
+
+KB.exportExcel = function() {
+  const md = STATE.ui.modalData;
+  try {
+    const matches = objToArr(STATE.data.matches).sort((a,b) => {
+      const si = s => ({matches:0,verkennend:1,offerte:2,actief:3}[s]||0);
+      return si(a.stage) - si(b.stage);
+    });
+    const kansen = STATE.data.kansen || {};
+    const devs = STATE.data.devs || {};
+    const sep = ';';
+    const rows = [['Kans','Adres','Fase','Ontwikkelaar(s)','BVO','Honorarium','Gewogen','Volgende actie','Notitie','Aangemaakt'].join(sep)];
+    matches.forEach(m => {
+      const k = kansen[m.kid] || {};
+      const devNames = (m.links||[]).map(did => devs[did]?.name||'?').join(', ');
+      const stg = {matches:'Match',verkennend:'Verkennend',offerte:'Offerte',actief:'Actief'}[m.stage]||m.stage;
+      const gw = Math.round((m.honorarium||0) * stagePct(m.stage) / 100);
+      const csvVal = v => { const s = String(v==null?'':v).replace(/"/g,'""'); return s.indexOf(sep)>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0 ? '"'+s+'"' : s; };
+      rows.push([csvVal(k.name),csvVal(k.adres),stg,csvVal(devNames),m.bvo||'',m.honorarium||'',gw,m.nextAction||'',csvVal(m.notitie),m.createdAt||''].join(sep));
+    });
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + rows.join('\r\n')], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `koppelbaas-${today()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (md) { md.bkMsg = 'Excel gedownload!'; md.bkOk = true; renderModal(); }
+  } catch(e) {
+    if (md) { md.bkMsg = 'Fout bij export: ' + e.message; md.bkOk = false; renderModal(); }
   }
 };
 
@@ -2623,6 +2657,8 @@ function setupEventListeners() {
       }
       case 'exportBackup':
         KB.exportBackup(); break;
+      case 'exportExcel':
+        KB.exportExcel(); break;
       case 'triggerImport': {
         const fi = document.getElementById('import-file-input');
         if (fi) fi.click();
