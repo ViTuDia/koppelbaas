@@ -138,13 +138,15 @@ Acquisitie-dashboard voor architectenbureau ARD/AtelierRuimDenkers. Koppelt ontw
 - Backup import met herstel
 
 ## Bekende bugs (low priority, bewust niet gefixt)
-- `_calcConfirmed` reset niet per modal-sessie (eenmaal bevestigd = vrij wijzigen, logisch gedrag)
-- `editKansFromMatch` keert niet terug naar editMatch na sluiten (bekende UX-beperking)
 - `honPct` ontbreekt als apart invoerveld in financieel overzicht BVO-rij (bewuste compactheid)
-- Focus-restore in finEdit matcht op waarde, kan verkeerd veld focussen bij gelijke waarden
-- Firebase kan arrays converteren naar objects bij concurrent edits (theoretisch risico, geen praktisch probleem)
-- `stageHistory` groeit onbegrensd (verwaarloosbaar over tijd)
 - Print preview niet grondig getest met nieuwe features
+
+## Gefixt (voorheen bekende bugs)
+- `_calcConfirmed` reset nu per modal-sessie (was: eenmaal bevestigd = vrij wijzigen)
+- `editKansFromMatch` keert nu terug naar editMatch via `_returnToEditMatch` state
+- Focus-restore in finEdit gebruikt nu `data-mid`/`data-fld` attributen i.p.v. waarde-matching
+- `asArr()` helper beschermt tegen Firebase array→object conversie in coals/links
+- `stageHistory` begrensd tot max 50 entries (`.slice(-49)` op alle 4 plekken)
 
 ## Security
 - Auth is client-side (localStorage flag), bewust eenvoudig gehouden
