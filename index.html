@@ -1495,9 +1495,12 @@ function renderEditMatchModal(c) {
       </div>
       <button data-noprint class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="editKansFromMatch" data-id="${md.kid}">Bewerk kans \u2192</button>
     </div>
+    <div class="field"><label>Fase</label><select onchange="KB.mfStage(this.value)">
+      ${STAGES.map(s => `<option value="${s.id}" ${md.stage===s.id?'selected':''}>${esc(s.label)}</option>`).join('')}
+    </select></div>
     ${financialEnabled() ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="field"><label>BVO (m\u00B2)</label><input type="number" min="0" data-calcfield="bvo" value="${md.bvo||''}" oninput="KB.mfCalc('bvo',this.value?Number(this.value):0)"></div>
-      <div class="field"><label>Honorarium (\u20AC)</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="honorarium" value="${md.honorarium ? md.honorarium.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('honorarium',Number(this.value.replace(/\\./g,''))||0)"></div>
+      <div class="field"><label style="${!md.honorarium?'color:'+c.rood:''}">Honorarium (\u20AC) ${!md.honorarium?'*':''}</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="honorarium" value="${md.honorarium ? md.honorarium.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('honorarium',Number(this.value.replace(/\\./g,''))||0)" style="${!md.honorarium?'border-color:'+c.rood+'44':''}"></div>
     </div>
     <div style="border:1px solid ${c.zachtgrijs};border-radius:4px;margin-bottom:10px;overflow:hidden">
       <div style="padding:7px 10px;background:${c.lichtgrijs};cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:500;color:${c.grijs}" data-action="toggleCalc">${ico('banknote',13)} Honorariumcalculator <span style="font-size:9px">${md._calcOpen?'\u25B2':'\u25BC'}</span></div>
@@ -1532,13 +1535,10 @@ function renderEditMatchModal(c) {
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
     <div style="${actionEnabled()?'':'display:none'}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="field"><label>Volgende actie</label><input type="date" value="${md.nextAction||''}" onchange="KB.mf('nextAction',this.value||null)"></div>
+        <div class="field"><label style="${actionEnabled()&&!md.nextAction?'color:'+c.rood:''}">Volgende actie ${actionEnabled()&&!md.nextAction?'*':''}</label><input type="date" value="${md.nextAction||''}" onchange="KB.mf('nextAction',this.value||null)" style="${actionEnabled()&&!md.nextAction?'border-color:'+c.rood+'44':''}"></div>
         <div class="field"><label>Drempel (dagen)</label><input type="number" min="1" max="365" value="${md.actionThreshold||''}" placeholder="${actionDefaults()[md.stage]||7}" onchange="KB.mf('actionThreshold',this.value?Number(this.value):null)"></div>
       </div>
     </div>
-    <div class="field"><label>Fase</label><select onchange="KB.mfStage(this.value)">
-      ${STAGES.map(s => `<option value="${s.id}" ${md.stage===s.id?'selected':''}>${esc(s.label)}</option>`).join('')}
-    </select></div>
     <div style="border-top:1px solid ${c.zachtgrijs};padding-top:14px;margin-top:14px">
       <div class="field"><label>Ontwikkelaars</label>
         <div id="modal-scroll-list" style="max-height:180px;overflow-y:auto;border:1px solid ${c.zachtgrijs};border-radius:3px;padding:6px">
