@@ -1272,14 +1272,15 @@ function renderMatchCard(c, match, stage, devs, dts) {
   { const _as = getActionStatus(match);
     if (_as !== 'disabled') {
       const _acCol = {none:c.grijs,ok:c.groen,expired:'#e67e22',critical:c.rood}[_as]||c.grijs;
-      const _acOp = _as === 'none' ? '0.35' : '0.8';
       let _acTt = 'Geen volgende actie gepland';
       if (match.nextAction) { const _n2=new Date();_n2.setHours(0,0,0,0);const _nx=new Date(match.nextAction);_nx.setHours(0,0,0,0);const _df=Math.round((_nx-_n2)/86400000);
         _acTt=_df>=0?'Volgende actie: '+_nx.toLocaleDateString('nl-NL'):'Actie verlopen: '+Math.abs(_df)+' dag'+(Math.abs(_df)!==1?'en':'')+' geleden'; }
-      html += `<span style="flex-shrink:0;opacity:${_acOp};color:${_acCol}" title="${esc(_acTt)}">${ico('clock',15)}</span>`;
+      html += `<span style="flex-shrink:0;position:relative;opacity:${_as==='none'?'0.35':'0.8'};color:${_acCol}" title="${esc(_acTt)}">${ico('clock',15)}${_as==='none'?`<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span>`:''}</span>`;
     }
   }
-  if (financialEnabled() && !match.honorarium) html += `<span style="flex-shrink:0;position:relative;opacity:0.6" title="Geen honorarium ingevuld">${ico('banknote',15)}<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span></span>`;
+  if (financialEnabled()) {
+    html += `<span style="flex-shrink:0;position:relative;opacity:${match.honorarium?'0.8':'0.35'};color:${match.honorarium?sc:c.grijs}" title="${match.honorarium?fmtEuro(match.honorarium):'Geen honorarium ingevuld'}">${ico('banknote',15)}${!match.honorarium?`<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span>`:''}</span>`;
+  }
   html += `<span class="stage-badge" style="flex-shrink:0;color:${sc};background:${sb};border:1px solid ${sc}33;font-size:9px;padding:2px 6px">${esc(stage.short)}</span>`;
   html += '</div>';
 
