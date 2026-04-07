@@ -137,6 +137,7 @@
     .field label { font-size: 10px; font-weight: 500; color: var(--txtSecondary); display: block; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
     .field input, .field select, .field textarea { width: 100%; padding: 8px 10px; font-size: 13px; border: 1px solid var(--inputBorder); border-radius: 4px; font-family: inherit; color: var(--txtPrimary); background: var(--kaart); }
     .field textarea { min-height: 60px; resize: vertical; }
+    .action-fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
     /* Toast melding */
     .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 10px 24px; border-radius: 20px; font-size: 12px; font-weight: 500; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 12px; }
@@ -207,12 +208,14 @@
       .header-logo-sub { display: none; }
       .header-div { height: 24px; }
       .header-title-name { font-size: 16px; }
-      .header-right { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+      .header-right { gap: 4px; flex-wrap: nowrap; justify-content: flex-end; }
       .header-stat { display: none; }
       .header-fin-label { display: inline; }
       .header-fin-full { display: none; }
       [data-action="print"] { display: none; }
-      .header-right .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 34px; }
+      .header-btn { padding: 6px 8px; font-size: 11px; height: 34px; }
+      .header-btn-icon { width: 34px; }
+      .header-btn .header-icon { font-size: 16px; }
 
       /* Selectiebalk compact */
       .sel-bar { padding: 6px 12px; }
@@ -312,6 +315,7 @@
       .modal { max-height: 90vh; border-radius: 12px 12px 0 0; }
       .modal-body { padding: 16px; }
       .field input, .field select, .field textarea { padding: 10px 12px; font-size: 15px; }
+      .action-fields-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1500,7 +1504,7 @@ function renderEditMatchModal(c) {
       ${STAGES.map(s => `<option value="${s.id}" ${md.stage===s.id?'selected':''}>${esc(s.label)}</option>`).join('')}
     </select></div>
     ${financialEnabled() ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="field"><label>BVO (m\u00B2)</label><input type="number" min="0" data-calcfield="bvo" value="${md.bvo||''}" oninput="KB.mfCalc('bvo',this.value?Number(this.value):0)"></div>
+      <div class="field"><label>BVO (m\u00B2)</label><input type="number" min="0" data-calcfield="bvo" value="${md.bvo||''}" oninput="KB.mfCalc('bvo',this.value?Number(this.value):0)" onblur="KB.mfCalcBlur('bvo')"></div>
       <div class="field"><label style="${!md.honorarium?'color:'+c.rood:''}">Honorarium (\u20AC) ${!md.honorarium?'*':''}</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="honorarium" value="${md.honorarium ? md.honorarium.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('honorarium',Number(this.value.replace(/\\./g,''))||0)" style="${!md.honorarium?'border-color:'+c.rood+'44':''}"></div>
     </div>
     <div style="border:1px solid ${c.zachtgrijs};border-radius:4px;margin-bottom:10px;overflow:hidden">
@@ -1510,16 +1514,16 @@ function renderEditMatchModal(c) {
         let calcBody = '';
         if (ct === 'bvo') {
           calcBody = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="field" style="margin-bottom:0"><label>Bouwkosten/m\u00B2 (\u20AC)</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="bkm2" value="${md.bkm2 ? md.bkm2.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('bkm2',Number(this.value.replace(/\\./g,''))||0)"></div>
-            <div class="field" style="margin-bottom:0"><label>Honorarium %</label><input type="number" min="0" max="100" step="0.5" data-calcfield="honPct" value="${md.honPct||''}" oninput="KB.mfCalc('honPct',this.value?Number(this.value):0)"></div>
+            <div class="field" style="margin-bottom:0"><label>Bouwkosten/m\u00B2 (\u20AC)</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="bkm2" value="${md.bkm2 ? md.bkm2.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('bkm2',Number(this.value.replace(/\\./g,''))||0)" onblur="KB.mfCalcBlur('bkm2')"></div>
+            <div class="field" style="margin-bottom:0"><label>Honorarium %</label><input type="number" min="0" max="100" step="0.5" data-calcfield="honPct" value="${md.honPct||''}" oninput="KB.mfCalc('honPct',this.value?Number(this.value):0)" onblur="KB.mfCalcBlur('honPct')"></div>
           </div>
-          ${md.bvo && md.bkm2 ? `<div style="font-size:10px;color:${c.grijs};font-weight:300">${md.bvo}m\u00B2 \u00D7 \u20AC${(md.bkm2||0).toLocaleString('nl-NL')} = ${fmtEuro(md.bvo*md.bkm2)} bouwkosten \u2192 ${md.honPct||0}% = ${fmtEuro(calcHon(md).honorarium)}</div>` : ''}`;
+          <div class="calc-summary" style="font-size:10px;color:${c.grijs};font-weight:300">${md.bvo && md.bkm2 ? `${md.bvo}m\u00B2 \u00D7 \u20AC${(md.bkm2||0).toLocaleString('nl-NL')} = ${fmtEuro(md.bvo*md.bkm2)} bouwkosten \u2192 ${md.honPct||0}% = ${fmtEuro(calcHon(md).honorarium)}` : ''}</div>`;
         } else if (ct === 'units') {
           calcBody = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-            <div class="field" style="margin-bottom:0"><label>Aantal units</label><input type="number" min="0" data-calcfield="units" value="${md.units||''}" oninput="KB.mfCalc('units',this.value?Number(this.value):0)"></div>
-            <div class="field" style="margin-bottom:0"><label>Prijs per unit (\u20AC)</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="pricePerUnit" value="${md.pricePerUnit ? md.pricePerUnit.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('pricePerUnit',Number(this.value.replace(/\\./g,''))||0)"></div>
+            <div class="field" style="margin-bottom:0"><label>Aantal units</label><input type="number" min="0" data-calcfield="units" value="${md.units||''}" oninput="KB.mfCalc('units',this.value?Number(this.value):0)" onblur="KB.mfCalcBlur('units')"></div>
+            <div class="field" style="margin-bottom:0"><label>Prijs per unit (\u20AC)</label><input type="text" inputmode="numeric" data-fmt="eur" data-calcfield="pricePerUnit" value="${md.pricePerUnit ? md.pricePerUnit.toLocaleString('nl-NL') : ''}" oninput="KB.mfCalc('pricePerUnit',Number(this.value.replace(/\\./g,''))||0)" onblur="KB.mfCalcBlur('pricePerUnit')"></div>
           </div>
-          ${md.units && md.pricePerUnit ? `<div style="font-size:10px;color:${c.grijs};font-weight:300">${md.units} units \u00D7 \u20AC${(md.pricePerUnit||0).toLocaleString('nl-NL')} = ${fmtEuro(calcHon(md).honorarium)}</div>` : ''}`;
+          <div class="calc-summary" style="font-size:10px;color:${c.grijs};font-weight:300">${md.units && md.pricePerUnit ? `${md.units} units \u00D7 \u20AC${(md.pricePerUnit||0).toLocaleString('nl-NL')} = ${fmtEuro(calcHon(md).honorarium)}` : ''}</div>`;
         } else {
           calcBody = `<div style="font-size:11px;color:${c.grijs};font-weight:300">Vul het honorarium hierboven direct in.</div>`;
         }
@@ -1535,7 +1539,7 @@ function renderEditMatchModal(c) {
     </div>` : ''}
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
     <div style="${actionEnabled()?'':'display:none'}">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="action-fields-grid">
         <div class="field"><label style="${actionEnabled()&&!md.nextAction?'color:'+c.rood:''}">Volgende actie ${actionEnabled()&&!md.nextAction?'*':''}</label><input type="date" value="${md.nextAction||''}" onchange="KB.mf('nextAction',this.value||null)" style="${actionEnabled()&&!md.nextAction?'border-color:'+c.rood+'44':''}"></div>
         <div class="field"><label>Drempel (dagen)</label><input type="number" min="1" max="365" value="${md.actionThreshold||''}" placeholder="${actionDefaults()[md.stage]||7}" onchange="KB.mf('actionThreshold',this.value?Number(this.value):null)"></div>
       </div>
@@ -1822,14 +1826,14 @@ function renderFinOverviewModal(c) {
       </select></td>
       <td style="padding:2px 1px">${field1}</td>
       <td style="padding:2px 1px">${field2}</td>
-      <td style="padding:5px 4px;text-align:right;font-weight:500;color:${hon?c.txtPrimary:c.grijs}">${hon ? fmtEuro(hon) : '\u2014'}</td>
-      <td style="padding:5px 4px;text-align:right;color:${sc};font-weight:400">${gw ? fmtEuro(gw) : '\u2014'}</td>
+      <td data-fin-hon="${m.id}" style="padding:5px 4px;text-align:right;font-weight:500;color:${hon?c.txtPrimary:c.grijs}">${hon ? fmtEuro(hon) : '\u2014'}</td>
+      <td data-fin-gw="${m.id}" style="padding:5px 4px;text-align:right;color:${sc};font-weight:400">${gw ? fmtEuro(gw) : '\u2014'}</td>
     </tr>`;
   });
   html += `<tr style="border-top:2px solid ${c.zachtgrijs}">
     <td colspan="5" style="padding:6px 4px;font-weight:600;text-align:right">Totaal</td>
-    <td style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalHon)}</td>
-    <td style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalGw)}</td>
+    <td data-fin-total-hon style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalHon)}</td>
+    <td data-fin-total-gw style="padding:6px 4px;text-align:right;font-weight:600">${fmtEuro(totalGw)}</td>
   </tr>`;
   html += '</tbody></table></div>';
   return html;
@@ -1864,15 +1868,27 @@ KB.finEdit = function(matchId, field, value) {
   if (md.finEdits[matchId].honorarium !== undefined) upd.honorarium = md.finEdits[matchId].honorarium;
   upd.updatedAt = today();
   fbUpdate(`matches/${matchId}`, upd);
-  // Live visuele feedback: update honorarium + gewogen kolommen
-  if (['bvo','bkm2','honPct','units','pricePerUnit'].includes(field)) {
-    const ae = document.activeElement;
-    const aMid = ae?.dataset?.mid; const aFld = ae?.dataset?.fld;
-    renderModal();
-    if (aMid && aFld) {
-      const target = document.querySelector(`.modal-body input[data-mid="${aMid}"][data-fld="${aFld}"]`);
-      if (target) { target.focus(); try { target.setSelectionRange(target.value.length, target.value.length); } catch(e) {} }
-    }
+  // Live visuele feedback: update honorarium + gewogen cellen in-place (geen re-render)
+  if (['bvo','bkm2','honPct','units','pricePerUnit','honorarium'].includes(field)) {
+    const hon = md.finEdits[matchId].honorarium ?? (field === 'honorarium' ? v : (m?.honorarium||0));
+    const pct = stagePct(m?.stage);
+    const gw = Math.round(hon * pct / 100);
+    const honEl = document.querySelector(`[data-fin-hon="${matchId}"]`);
+    const gwEl = document.querySelector(`[data-fin-gw="${matchId}"]`);
+    if (honEl) honEl.textContent = hon ? fmtEuro(hon) : '\u2014';
+    if (gwEl) gwEl.textContent = gw ? fmtEuro(gw) : '\u2014';
+    // Update totalen
+    let totalHon = 0, totalGw = 0;
+    document.querySelectorAll('[data-fin-hon]').forEach(el => {
+      const mid = el.dataset.finHon;
+      const mh = md.finEdits[mid]?.honorarium ?? STATE.data.matches[mid]?.honorarium ?? 0;
+      const mp = stagePct(STATE.data.matches[mid]?.stage);
+      totalHon += mh; totalGw += Math.round(mh * mp / 100);
+    });
+    const thEl = document.querySelector('[data-fin-total-hon]');
+    const tgEl = document.querySelector('[data-fin-total-gw]');
+    if (thEl) thEl.textContent = fmtEuro(totalHon);
+    if (tgEl) tgEl.textContent = fmtEuro(totalGw);
   }
 };
 
@@ -2320,30 +2336,42 @@ KB.mfCalc = function(field, value) {
   STATE.ui.modalDirty = true;
   const calcFields = ['bvo','bkm2','honPct','units','pricePerUnit'];
   if (field === 'calcType') {
-    md._calcConfirmed = true; // type wissel = bewuste keuze, geen confirm nodig
+    md._calcConfirmed = true;
     if (value !== 'fixed') md.honorarium = calcHon(md).honorarium;
-  } else if (calcFields.includes(field)) {
-    const newHon = calcHon(md).honorarium;
-    if (md.honorarium && md.honorarium !== newHon && !md._calcConfirmed) {
-      const prevVal = md['_prev_'+field] ?? value;
-      showConfirm(`Honorarium wijzigt van ${fmtEuro(md.honorarium)} naar ${fmtEuro(newHon)}. Doorgaan?`, () => {
-        md._calcConfirmed = true;
-        md.honorarium = newHon;
-        STATE.ui.modal = 'editMatch'; renderModal();
-      });
-      md[field] = prevVal;
-      return;
-    }
-    md.honorarium = newHon;
+    renderModal(); // select change: geen keyboard, re-render OK
+    return;
   }
-  md['_prev_'+field] = value;
-  const ae = document.activeElement;
-  const cf = (ae?.tagName === 'INPUT' && ae?.dataset?.calcfield) ? ae.dataset.calcfield : null;
-  renderModal();
-  if (cf) {
-    const el = document.querySelector(`input[data-calcfield="${cf}"]`);
-    if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch(e) {} }
+  if (calcFields.includes(field)) {
+    md.honorarium = calcHon(md).honorarium;
   }
+  // Inline DOM-update: honorarium veld + calculator samenvatting bijwerken, geen re-render
+  const honEl = document.querySelector('input[data-calcfield="honorarium"]');
+  if (honEl && field !== 'honorarium') honEl.value = md.honorarium ? md.honorarium.toLocaleString('nl-NL') : '';
+  const sumEl = document.querySelector('.calc-summary');
+  if (sumEl) {
+    const ct = md.calcType||'bvo';
+    if (ct === 'bvo' && md.bvo && md.bkm2) sumEl.textContent = `${md.bvo}m\u00B2 \u00D7 \u20AC${(md.bkm2||0).toLocaleString('nl-NL')} = ${fmtEuro(md.bvo*md.bkm2)} bouwkosten \u2192 ${md.honPct||0}% = ${fmtEuro(calcHon(md).honorarium)}`;
+    else if (ct === 'units' && md.units && md.pricePerUnit) sumEl.textContent = `${md.units} units \u00D7 \u20AC${(md.pricePerUnit||0).toLocaleString('nl-NL')} = ${fmtEuro(calcHon(md).honorarium)}`;
+    else sumEl.textContent = '';
+  }
+};
+// Confirm honorarium bij verlaten veld (blur), niet per karakter
+KB.mfCalcBlur = function(field) {
+  const md = STATE.ui.modalData; if (!md) return;
+  const calcFields = ['bvo','bkm2','honPct','units','pricePerUnit'];
+  if (!calcFields.includes(field)) return;
+  if (md._origHonorium && md.honorarium !== md._origHonorium && !md._calcConfirmed) {
+    const savedHon = md.honorarium;
+    md.honorarium = md._origHonorium; // herstel alvast — bij annuleren klopt het dan
+    showConfirm(`Honorarium wijzigt van ${fmtEuro(md._origHonorium)} naar ${fmtEuro(savedHon)}. Doorgaan?`, () => {
+      md._calcConfirmed = true;
+      md.honorarium = savedHon;
+      md._origHonorium = savedHon;
+      renderModal();
+    });
+    return;
+  }
+  md._origHonorium = md.honorarium;
 };
 
 // Modal field helper — update modalData zonder re-render tenzij nodig
@@ -2864,7 +2892,7 @@ function setupEventListeners() {
             bkm2: m.bkm2 || 0, honPct: m.honPct || 0,
             calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0,
             nextAction: m.nextAction || null, actionThreshold: m.actionThreshold || null,
-            _calcOpen: !(m.honorarium), _calcConfirmed: false
+            _calcOpen: !(m.honorarium), _calcConfirmed: false, _origHonorium: m.honorarium||0
           };
           STATE.ui.modalExtra = null; renderModal();
         }
