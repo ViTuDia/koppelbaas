@@ -1258,7 +1258,7 @@ function renderMatchCard(c, match, stage, devs, dts) {
   html += `<span style="font-size:14px;color:${c.grijs};flex-shrink:0;padding:2px 4px" data-action="toggleMatchCollapse" data-id="${match.id}">${isC?'\u25B8':'\u25BE'}</span>`;
   html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
   if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0">(${tl})</span>`;
-  if (lockEnabled() && match.locked) html += `<span style="flex-shrink:0;opacity:0.5;color:${c.grijs}" title="Vergrendeld">${ico('lock',14)}</span>`;
+  if (lockEnabled() && match.locked) html += `<span style="flex-shrink:0;opacity:0.5;color:${c.grijs}" title="Vergrendeld">${ico('lock',13)}</span>`;
   { const _as = getActionStatus(match);
     if (_as !== 'disabled') {
       const _acCol = {none:c.grijs,ok:c.groen,expired:'#e67e22',critical:c.rood}[_as]||c.grijs;
@@ -1270,13 +1270,15 @@ function renderMatchCard(c, match, stage, devs, dts) {
     }
   }
   if (financialEnabled() && !match.honorarium) html += `<span style="flex-shrink:0;position:relative;opacity:0.6" title="Geen honorarium ingevuld">${ico('banknote',13)}<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span></span>`;
+  html += `<span class="stage-badge" style="flex-shrink:0;color:${sc};background:${sb};border:1px solid ${sc}33;font-size:8px;padding:1px 5px">${esc(stage.short)}</span>`;
   html += '</div>';
 
-  // Fase + BVO (altijd zichtbaar, direct onder titel)
-  html += `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">`;
-  html += `<span class="stage-badge" style="color:${sc};background:${sb};border:1px solid ${sc}33">${esc(stage.label)}</span>`;
-  if (!isC && kans.omvang) html += `<span style="font-size:10px;color:${c.grijs};font-weight:300">BVO ${esc(kans.omvang)}m\u00B2</span>`;
-  html += '</div>';
+  // BVO (altijd zichtbaar als uitgeklapt, direct onder titel)
+  if (!isC && kans.omvang) {
+    html += `<div style="display:flex;align-items:center;gap:6px;margin-top:4px">`;
+    html += `<span style="font-size:10px;color:${c.grijs};font-weight:300">BVO ${esc(kans.omvang)}m\u00B2</span>`;
+    html += '</div>';
+  }
 
   // Uitgeklapte inhoud
   if (!isC) {
