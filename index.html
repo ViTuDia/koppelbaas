@@ -949,9 +949,14 @@ function renderHeader(c, devs, kansen, matches, alarms) {
             {action:'showAdmin',icon:ico('settings',16),label:'Instellingen'},
             {action:'print',icon:ico('printer',16),label:'Printen'},
             {action:'toggleDark',icon:STATE.ui.dark?ico('sun',16):ico('moon',16),label:STATE.ui.dark?'Licht thema':'Donker thema'},
-          ].map(i => `<button style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 14px;background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;color:${c.txtPrimary};text-align:left" onmouseover="this.style.background='${c.lichtgrijs}'" onmouseout="this.style.background='none'" data-action="${i.action}">${i.icon}<span>${i.label}</span></button>`).join('')}
-          ${(() => { const _fb=STATE.data.meta?.feedback; const _hf=_fb&&Object.keys(_fb).length>0; const _fbUrl='https://console.firebase.google.com/project/atelierruimdenkers-d47d6/database/atelierruimdenkers-d47d6-default-rtdb/data/~2Fmeta~2Ffeedback';
-            return _hf ? `<div style="border-top:1px solid ${c.zachtgrijs};margin:4px 0"></div><a href="${_fbUrl}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 14px;text-decoration:none;font-size:12px;font-family:inherit;color:${c.rood}" onmouseover="this.style.background='${c.lichtgrijs}'" onmouseout="this.style.background='none'"><span class="conn-dot" style="background:${c.rood};margin:0"></span><span>Feedback ontvangen</span></a>` : ''; })()}
+            {action:'logout',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',label:'Uitloggen',color:c.rood}
+          ].map(i => `<button style="display:flex;align-items:center;gap:10px;width:100%;padding:8px 14px;background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;color:${i.color||c.txtPrimary};text-align:left" onmouseover="this.style.background='${c.lichtgrijs}'" onmouseout="this.style.background='none'" data-action="${i.action}">${i.icon}<span>${i.label}</span></button>`).join('')}
+          <div style="border-top:1px solid ${c.zachtgrijs};margin:4px 0"></div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 14px">
+            <span class="conn-dot" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0" title="${STATE.ui.connected?'Verbonden':'Offline'}"></span>
+            ${(() => { const _fb=STATE.data.meta?.feedback; const _hf=_fb&&Object.keys(_fb).length>0; const _fbUrl='https://console.firebase.google.com/project/atelierruimdenkers-d47d6/database/atelierruimdenkers-d47d6-default-rtdb/data/~2Fmeta~2Ffeedback';
+              return _hf ? `<a href="${_fbUrl}" target="_blank" rel="noopener" title="Feedback ontvangen"><span class="conn-dot" style="background:${c.rood};margin:0"></span></a>` : ''; })()}
+          </div>
         </div>
       </div>
     </div>
@@ -1405,7 +1410,7 @@ function renderModal() {
     case 'confirmDelete': { w=380; title='Bevestig verwijderen'; body = renderConfirmDeleteModal(c); break; }
     case 'alerts': { w=500; title=`Alerts (${getAlarms().length})`; body = renderAlertsModal(c); break; }
     case 'stageGate': { w=400; title=modalExtra?.q||'Bevestigen'; body = renderStageGateModal(c); break; }
-    case 'admin': { w=440; title=ico('settings',16)+' Admin'; body = renderAdminModal(c); break; }
+    case 'admin': { w=440; title=ico('settings',16)+' Instellingen'; body = renderAdminModal(c); break; }
     case 'help': { w=540; title='? Help'; body = renderHelpModal(c); break; }
     case 'finOverview': { w=700; title=ico('banknote',16)+' Financieel overzicht'; body = renderFinOverviewModal(c); break; }
     case 'map': { w=800; title=ico('map',16)+' Kaart'; body = renderMapModal(c); break; }
