@@ -588,14 +588,16 @@ function getAlarms() {
       alarms.push({m, k, level: al,
         msg: `"${k?.name||'?'}" \u2014 ${tl===0?'geen match':`${tl} match`} (minstens ${min} nodig)`});
     }
-    const as = getActionStatus(m);
-    if (as === 'expired' || as === 'critical') {
-      const k = kansen[m.kid];
-      const _n=new Date();_n.setHours(0,0,0,0);const _nx=new Date(m.nextAction);_nx.setHours(0,0,0,0);
-      const _df=Math.abs(Math.round((_nx-_n)/86400000));
-      alarms.push({m, k, level: as==='critical'?'rood':'oranje',
-        msg: `"${k?.name||'?'}" \u2014 actie ${_df} dag${_df!==1?'en':''} verlopen`});
-    } else if (as === 'none') { noAction++; }
+    if (m.stage !== 'actief') {
+      const as = getActionStatus(m);
+      if (as === 'expired' || as === 'critical') {
+        const k = kansen[m.kid];
+        const _n=new Date();_n.setHours(0,0,0,0);const _nx=new Date(m.nextAction);_nx.setHours(0,0,0,0);
+        const _df=Math.abs(Math.round((_nx-_n)/86400000));
+        alarms.push({m, k, level: as==='critical'?'rood':'oranje',
+          msg: `"${k?.name||'?'}" \u2014 actie ${_df} dag${_df!==1?'en':''} verlopen`});
+      } else if (as === 'none') { noAction++; }
+    }
   });
   if (noAction > 0) alarms.push({m:null, k:null, level:'grijs',
     msg: `${noAction} match${noAction!==1?'es':''} zonder geplande actie`});
@@ -1280,7 +1282,7 @@ function renderMatchCard(c, match, stage, devs, dts) {
   if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0">(${tl})</span>`;
   if (lockEnabled() && match.locked) html += `<span style="flex-shrink:0;opacity:0.5;color:${c.grijs}" title="Vergrendeld">${ico('lock',16)}</span>`;
   { const _as = getActionStatus(match);
-    if (_as !== 'disabled') {
+    if (_as !== 'disabled' && match.stage !== 'actief') {
       const _acCol = {none:c.grijs,ok:c.groen,expired:'#e67e22',critical:c.rood}[_as]||c.grijs;
       let _acTt = 'Geen volgende actie gepland';
       if (match.nextAction) { const _n2=new Date();_n2.setHours(0,0,0,0);const _nx=new Date(match.nextAction);_nx.setHours(0,0,0,0);const _df=Math.round((_nx-_n2)/86400000);
@@ -1544,9 +1546,9 @@ function renderEditMatchModal(c) {
       })() : ''}
     </div>` : ''}
     <div class="field"><label>Notitie</label><textarea oninput="KB.mf('notitie',this.value)">${esc(md.notitie||'')}</textarea></div>
-    <div style="${actionEnabled()?'':'display:none'}">
+    <div style="${actionEnabled()&&md.stage!=='actief'?'':'display:none'}">
       <div class="action-fields-grid">
-        <div class="field"><label style="${actionEnabled()&&!md.nextAction?'color:'+c.rood:''}">Volgende actie ${actionEnabled()&&!md.nextAction?'*':''}</label><input type="date" value="${md.nextAction||''}" onchange="KB.mf('nextAction',this.value||null)" style="${actionEnabled()&&!md.nextAction?'border-color:'+c.rood+'44':''}"></div>
+        <div class="field"><label style="${actionEnabled()&&md.stage!=='actief'&&!md.nextAction?'color:'+c.rood:''}">Volgende actie ${actionEnabled()&&md.stage!=='actief'&&!md.nextAction?'*':''}</label><input type="date" value="${md.nextAction||''}" onchange="KB.mf('nextAction',this.value||null)" style="${actionEnabled()&&md.stage!=='actief'&&!md.nextAction?'border-color:'+c.rood+'44':''}"></div>
         <div class="field"><label>Drempel (dagen)</label><input type="number" min="1" max="365" value="${md.actionThreshold||''}" placeholder="${actionDefaults()[md.stage]||7}" onchange="KB.mf('actionThreshold',this.value?Number(this.value):null)"></div>
       </div>
     </div>
@@ -1845,13 +1847,10 @@ function renderFinOverviewModal(c) {
   return html;
 }
 function renderActionOverviewModal(c) {
-  const allMatches = objToArr(STATE.data.matches).sort((a,b) => {
+  const allMatches = objToArr(STATE.data.matches).filter(m => m.stage !== 'actief').sort((a,b) => {
     const si = s => ({matches:0,verkennend:1,offerte:2,actief:3}[s]||0);
     return si(a.stage) - si(b.stage) || (a.so||0) - (b.so||0);
   });
-  // Alle kansen zonder match
-  const matchedKids = new Set(allMatches.map(m => m.kid));
-  const unmatchedK = sortedArr(STATE.data.kansen).filter(k => !matchedKids.has(k.id));
   const today2 = new Date(); today2.setHours(0,0,0,0);
   const inp = `style="width:100%;padding:3px 4px;border:1px solid ${c.zachtgrijs};border-radius:2px;font-size:11px;font-family:inherit;background:${c.kaart};color:${c.txtPrimary}"`;
   let html = `<div style="font-size:11px;color:${c.grijs};margin-bottom:10px;font-weight:300">Plan en bewerk afspraken per match. Wijzigingen worden direct opgeslagen.</div>`;
@@ -1862,7 +1861,6 @@ function renderActionOverviewModal(c) {
     <th style="padding:6px 4px;font-weight:600;text-align:center;min-width:50px">Status</th>
     <th style="padding:6px 4px;font-weight:600;min-width:110px">Volgende actie</th>
     <th style="padding:6px 4px;font-weight:600;min-width:55px">Drempel</th>
-    <th style="padding:6px 4px;font-weight:600;min-width:120px">Notitie</th>
   </tr></thead><tbody>`;
   let prevStage = '';
   let planned = 0, expired = 0, noPlan = 0;
@@ -1884,7 +1882,7 @@ function renderActionOverviewModal(c) {
     } else { statusDot = c.grijs; statusTxt = 'Geen'; noPlan++; }
     if (stageChanged) {
       const stageCnt = allMatches.filter(x => x.stage === m.stage && STATE.data.kansen[x.kid]).length;
-      html += `<tr><td colspan="6" style="padding:8px 4px 4px;font-size:12px;font-weight:600;color:${sc};background:${stageBg(m.stage)};border-bottom:1px solid ${sc}33">${esc(stage?.label||'?')} (${stageCnt})</td></tr>`;
+      html += `<tr><td colspan="5" style="padding:8px 4px 4px;font-size:12px;font-weight:600;color:${sc};background:${stageBg(m.stage)};border-bottom:1px solid ${sc}33">${esc(stage?.label||'?')} (${stageCnt})</td></tr>`;
     }
     html += `<tr style="border-bottom:1px solid ${c.zachtgrijs}22">
       <td style="padding:5px 4px;font-weight:400">${esc(kans.name)}</td>
@@ -1892,20 +1890,8 @@ function renderActionOverviewModal(c) {
       <td style="padding:5px 4px;text-align:center"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:${statusDot};display:inline-block"></span><span style="font-size:10px;color:${statusDot=== c.grijs?c.grijs:statusDot};font-weight:500">${statusTxt}</span></span></td>
       <td style="padding:2px 1px"><input type="date" data-act-mid="${m.id}" data-act-fld="nextAction" value="${m.nextAction||''}" ${inp} onchange="KB.actEdit('${m.id}','nextAction',this.value||null)"></td>
       <td style="padding:2px 1px"><input type="number" min="1" max="365" data-act-mid="${m.id}" data-act-fld="actionThreshold" value="${m.actionThreshold||''}" placeholder="${defTh}" ${inp} onchange="KB.actEdit('${m.id}','actionThreshold',this.value?Number(this.value):null)"></td>
-      <td style="padding:2px 1px"><input type="text" data-act-mid="${m.id}" data-act-fld="notitie" value="${esc(m.notitie||'')}" ${inp} onchange="KB.actEdit('${m.id}','notitie',this.value)"></td>
     </tr>`;
   });
-  // Ongematchte kansen
-  if (unmatchedK.length > 0) {
-    html += `<tr><td colspan="6" style="padding:8px 4px 4px;font-size:12px;font-weight:600;color:${c.grijs};background:${c.lichtgrijs};border-bottom:1px solid ${c.zachtgrijs}">Ongematchte kansen (${unmatchedK.length})</td></tr>`;
-    unmatchedK.forEach(k => {
-      html += `<tr style="border-bottom:1px solid ${c.zachtgrijs}22">
-        <td style="padding:5px 4px;font-weight:400;color:${c.grijs}">${esc(k.name)}</td>
-        <td style="padding:5px 4px;text-align:center"><span style="font-size:9px;color:${c.rood}">Vrij</span></td>
-        <td colspan="4" style="padding:5px 4px;font-size:10px;color:${c.grijs};font-style:italic">Nog geen koppeling</td>
-      </tr>`;
-    });
-  }
   html += '</tbody></table></div>';
   html += `<div style="margin-top:10px;font-size:11px;color:${c.grijs};font-weight:300;display:flex;gap:16px;flex-wrap:wrap">`;
   html += `<span><span style="color:${c.groen}">\u25CF</span> ${planned} gepland</span>`;
