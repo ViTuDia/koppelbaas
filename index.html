@@ -100,7 +100,7 @@
     .badge-lg { width: 24px; height: 24px; font-size: 10px; }
 
     /* Stage badge */
-    .stage-badge { padding: 2px 8px; font-size: 9px; font-weight: 500; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; white-space: nowrap; }
+    .stage-badge { padding: 2px 8px; font-size: 9px; font-weight: 500; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; white-space: nowrap; line-height: 1.4; display: inline-block; }
 
     /* Knoppen */
     .btn { padding: 8px 16px; font-size: 12px; font-weight: 500; border: none; border-radius: 3px; cursor: pointer; font-family: inherit; }
@@ -1281,6 +1281,9 @@ function renderMatchCard(c, match, stage, devs, dts) {
   html += `<span style="font-weight:500;font-size:14px;line-height:1.3;flex:1;min-width:0">${esc(kans.name)}</span>`;
   if (isC && tl > 0) html += `<span style="font-size:10px;color:${c.grijs};flex-shrink:0">(${tl})</span>`;
   if (lockEnabled() && match.locked) html += `<span style="flex-shrink:0;opacity:0.5;color:${c.grijs}" title="Vergrendeld">${ico('lock',16)}</span>`;
+  if (financialEnabled()) {
+    html += `<span style="flex-shrink:0;position:relative;opacity:${match.honorarium?'0.8':'0.35'};color:${match.honorarium?sc:c.grijs};display:inline-flex;align-items:center" title="${match.honorarium?fmtEuro(match.honorarium):'Geen honorarium ingevuld'}">${ico('banknote',18)}${!match.honorarium?`<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span>`:''}</span>`;
+  }
   { const _as = getActionStatus(match);
     if (_as !== 'disabled' && match.stage !== 'actief') {
       const _acCol = {none:c.grijs,ok:c.groen,expired:'#e67e22',critical:c.rood}[_as]||c.grijs;
@@ -1290,10 +1293,7 @@ function renderMatchCard(c, match, stage, devs, dts) {
       html += `<span style="flex-shrink:0;width:12px;height:12px;border-radius:50%;background:${_acCol};opacity:${_as==='none'?'0.3':'0.85'}" title="${esc(_acTt)}"></span>`;
     }
   }
-  if (financialEnabled()) {
-    html += `<span style="flex-shrink:0;position:relative;opacity:${match.honorarium?'0.8':'0.35'};color:${match.honorarium?sc:c.grijs};display:inline-flex;align-items:center" title="${match.honorarium?fmtEuro(match.honorarium):'Geen honorarium ingevuld'}">${ico('banknote',18)}${!match.honorarium?`<span style="position:absolute;left:0;right:0;top:50%;height:2px;background:${c.rood};transform:rotate(-45deg)"></span>`:''}</span>`;
-  }
-  html += `<span class="stage-badge" style="flex-shrink:0;color:${sc};background:${sb};border:1px solid ${sc}33;font-size:9px;padding:2px 6px">${esc(stage.short)}</span>`;
+  html += `<span class="stage-badge" style="flex-shrink:0;color:${sc};background:${sb};border:1px solid ${sc}33">${esc(stage.short)}</span>`;
   html += '</div>';
 
   // Uitgeklapte inhoud
@@ -1905,6 +1905,11 @@ function renderActionOverviewModal(c) {
 KB.actEdit = function(matchId, field, value) {
   const upd = {}; upd[field] = value; upd.updatedAt = today();
   fbUpdate(`matches/${matchId}`, upd);
+  // Direct statuskolom bijwerken na datum/drempel wijziging
+  if (field === 'nextAction' || field === 'actionThreshold') {
+    // Wacht tot Firebase state is bijgewerkt, dan re-render
+    setTimeout(() => renderModal(), 100);
+  }
 };
 KB.finEditType = function(matchId, value) {
   const md = STATE.ui.modalData; if (!md) return;
@@ -1949,8 +1954,9 @@ KB.finEdit = function(matchId, field, value) {
     let totalHon = 0, totalGw = 0;
     document.querySelectorAll('[data-fin-hon]').forEach(el => {
       const mid = el.dataset.finHon;
-      const mh = md.finEdits[mid]?.honorarium ?? STATE.data.matches[mid]?.honorarium ?? 0;
-      const mp = stagePct(STATE.data.matches[mid]?.stage);
+      const mx = STATE.data.matches[mid]; if (!mx) return;
+      const mh = md.finEdits[mid]?.honorarium ?? mx.honorarium ?? 0;
+      const mp = stagePct(mx.stage);
       totalHon += mh; totalGw += Math.round(mh * mp / 100);
     });
     const thEl = document.querySelector('[data-fin-total-hon]');
@@ -2029,7 +2035,7 @@ async function initMapModal() {
     if (i < toGeocode.length - 1) await delay(1100); // Nominatim rate limit
   }
   const noAddr = sortedArr(STATE.data.kansen).filter(k => !k.adres).length;
-  if (statusEl) statusEl.textContent = (toGeocode.length > 0 ? `${markers.length} locatie(s) geladen. ` : '') + (noAddr ? noAddr + ' kans(en) zonder adres' : '');
+  if (statusEl) statusEl.textContent = `${markers.length}/${allK.length} locatie(s) geladen` + (noAddr ? ` \u00B7 ${noAddr} zonder adres` : '');
 }
 
 function addMapMarker(map, kans, lat, lng) {
@@ -3172,7 +3178,7 @@ function setupEventListeners() {
         if (m) {
           const kans = STATE.data.kansen[m.kid];
           STATE.ui.modal = 'editMatch'; STATE.ui.modalData = {...m, id, links:[...asArr(m.links)], coals:JSON.parse(JSON.stringify(asArr(m.coals))),
-            bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0), bkm2: m.bkm2 || 0, honPct: m.honPct || 0, calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0, _calcOpen: !(m.honorarium)
+            bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0), bkm2: m.bkm2 || 0, honPct: m.honPct || 0, calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0, _calcOpen: !(m.honorarium), _calcConfirmed: false, _origHonorium: m.honorarium||0
           }; STATE.ui.modalExtra = null; renderModal();
         }
         break;
@@ -3193,7 +3199,7 @@ function setupEventListeners() {
             STATE.ui.modal = 'editMatch';
             STATE.ui.modalData = {...m, id:mid, stage:newStage, links:[...asArr(m.links)], coals:JSON.parse(JSON.stringify(asArr(m.coals))),
               bvo: m.bvo || (kans?.omvang ? Number(kans.omvang) : 0), bkm2: m.bkm2 || 0, honPct: m.honPct || 0,
-              calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0, _calcOpen: !(m.honorarium)
+              calcType: m.calcType || 'bvo', units: m.units || 0, pricePerUnit: m.pricePerUnit || 0, _calcOpen: !(m.honorarium), _calcConfirmed: false, _origHonorium: m.honorarium||0
             };
             STATE.ui.modalExtra = null;
             renderModal();
