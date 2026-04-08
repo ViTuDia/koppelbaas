@@ -1386,7 +1386,7 @@ function renderFooter(c) {
   const _fbUrl = 'https://console.firebase.google.com/project/atelierruimdenkers-d47d6/database/atelierruimdenkers-d47d6-default-rtdb/data/~2Fmeta~2Ffeedback';
   return `<div class="footer">
     <span><span style="color:${c.geel};font-weight:500">/ </span>ARD / AtelierRuimDenkers \u2014 De Koppelbaas</span>
-    <span style="display:flex;align-items:center;gap:4px">Willem Buytewechstraat 45, Rotterdam <span class="conn-dot" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0 0 0 6px" title="${STATE.ui.connected?'Verbonden':'Offline'}"></span>${_hf?`<a href="${_fbUrl}" target="_blank" rel="noopener" title="Feedback ontvangen"><span class="conn-dot" style="background:${c.rood};margin:0;cursor:pointer"></span></a>`:''}</span>
+    <span style="display:flex;align-items:center;gap:4px">Willem Buytewechstraat 45, Rotterdam <span class="conn-dot" style="background:${STATE.ui.connected?'#007b2f':'#c22d0b'};margin:0 0 0 6px" title="${STATE.ui.connected?'Verbonden':'Offline'}"></span><a href="${_fbUrl}" target="_blank" rel="noopener" title="${_hf?'Feedback ontvangen':'Geen feedback'}"><span class="conn-dot" style="background:${_hf?c.rood:'#007b2f'};margin:0;cursor:pointer"></span></a></span>
   </div>`;
 }
 
