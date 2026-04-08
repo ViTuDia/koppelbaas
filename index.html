@@ -975,8 +975,9 @@ function renderHeader(c, devs, kansen, matches, alarms) {
 
 function renderSelectionBar(c, selName, matches, unmatched) {
   const allMFolded = matches.length === 0 || matches.every(m => m.col);
-  const allKFolded = unmatched.length === 0 || unmatched.every(k => STATE.ui.collapsedKansen[k.id]);
-  const allFolded = allMFolded && allKFolded && (matches.length > 0 || unmatched.length > 0);
+  const dts = sortedArr(STATE.data.devTypes);
+  const allPanelsFolded = (dts.length > 0 && dts.every(t => STATE.ui.collapsedDevTypes[t.id])) &&
+    (unmatched.length === 0 || unmatched.every(k => STATE.ui.collapsedKansen[k.id]));
   // Gewogen omzet voor geselecteerde dev
   let devRevenue = '';
   if (financialEnabled() && STATE.ui.selectedDev) {
@@ -988,11 +989,14 @@ function renderSelectionBar(c, selName, matches, unmatched) {
     <div style="display:flex;align-items:center;gap:10px">
       ${selName ? `<span class="sel-bar-name"><span class="sel-bar-slash">/ </span>${esc(selName)}${devRevenue}</span>` : ''}
     </div>
-    <div style="display:flex;align-items:center;gap:8px" data-noprint>
-      <button title="${allFolded?'Alle kaarten uitklappen':'Alle kaarten inklappen'}" class="btn btn-grey" style="display:flex;align-items:center;gap:4px;font-size:13px;padding:6px 14px" data-action="collapseAll" data-val="${allFolded?'0':'1'}">
-        <span style="font-size:14px">${allFolded?'\u25B8':'\u25BE'}</span> ${allFolded?'Alles uitklappen':'Alles inklappen'}
+    <div style="display:flex;align-items:center;gap:6px" data-noprint>
+      <button title="${allPanelsFolded?'Panelen uitklappen':'Panelen inklappen'}" class="btn btn-grey" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px" data-action="collapseAllPanels" data-val="${allPanelsFolded?'0':'1'}">
+        <span style="font-size:13px">${allPanelsFolded?'\u25B8':'\u25BE'}</span> Panelen
       </button>
-      ${selName ? `<button title="Selectie opheffen" class="btn btn-grey" style="font-size:13px;padding:6px 14px" data-action="clearSelection">\u2715 Reset</button>` : ''}
+      <button title="${allMFolded?'Pipeline uitklappen':'Pipeline inklappen'}" class="btn btn-grey" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px" data-action="collapseAll" data-val="${allMFolded?'0':'1'}">
+        <span style="font-size:13px">${allMFolded?'\u25B8':'\u25BE'}</span> Pipeline
+      </button>
+      ${selName ? `<button title="Selectie opheffen" class="btn btn-grey" style="font-size:12px;padding:5px 10px" data-action="clearSelection">\u2715 Reset</button>` : ''}
     </div>
   </div>`;
 }
@@ -2683,9 +2687,6 @@ function setupEventListeners() {
         const updates = {};
         objToArr(STATE.data.matches).forEach(m => { updates[`matches/${m.id}/col`] = val; });
         if (Object.keys(updates).length > 0) fbMulti(updates);
-        const unm = unmatchedKansen();
-        unm.forEach(k => STATE.ui.collapsedKansen[k.id] = val);
-        if (!val) STATE.ui.collapsedKansen = {};
         render(); break;
       }
       case 'collapseCol': {
@@ -2696,6 +2697,16 @@ function setupEventListeners() {
         sm.forEach(m => { updates[`matches/${m.id}/col`] = !allC; });
         if (Object.keys(updates).length > 0) fbMulti(updates);
         break;
+      }
+      case 'collapseAllPanels': {
+        const val2 = el.dataset.val === '1';
+        // Dev-categorieën
+        sortedArr(STATE.data.devTypes).forEach(t => STATE.ui.collapsedDevTypes[t.id] = val2);
+        if (!val2) STATE.ui.collapsedDevTypes = {};
+        // Kansen
+        unmatchedKansen().forEach(k => STATE.ui.collapsedKansen[k.id] = val2);
+        if (!val2) STATE.ui.collapsedKansen = {};
+        render(); break;
       }
       case 'collapseAllDevTypes': {
         const dts2 = sortedArr(STATE.data.devTypes);
