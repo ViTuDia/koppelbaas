@@ -585,7 +585,7 @@ function getAlarms() {
       const tl = totalLinks(m);
       const stage = STAGES.find(s => s.id === m.stage);
       const min = stage && stage.needsMin2 ? 2 : 1;
-      alarms.push({m, k, level: al,
+      alarms.push({m, k, level: al, type: 'match',
         msg: `"${k?.name||'?'}" \u2014 ${tl===0?'geen match':`${tl} match`} (minstens ${min} nodig)`});
     }
     if (m.stage !== 'actief') {
@@ -594,12 +594,12 @@ function getAlarms() {
         const k = kansen[m.kid];
         const _n=new Date();_n.setHours(0,0,0,0);const _nx=new Date(m.nextAction);_nx.setHours(0,0,0,0);
         const _df=Math.abs(Math.round((_nx-_n)/86400000));
-        alarms.push({m, k, level: as==='critical'?'rood':'oranje',
+        alarms.push({m, k, level: as==='critical'?'rood':'oranje', type: 'action',
           msg: `"${k?.name||'?'}" \u2014 actie ${_df} dag${_df!==1?'en':''} verlopen`});
       } else if (as === 'none') { noAction++; }
     }
   });
-  if (noAction > 0) alarms.push({m:null, k:null, level:'grijs',
+  if (noAction > 0) alarms.push({m:null, k:null, level:'grijs', type: 'action',
     msg: `${noAction} match${noAction!==1?'es':''} zonder geplande actie`});
   return alarms;
 }
@@ -1741,18 +1741,31 @@ function renderConfirmDeleteModal(c) {
 function renderAlertsModal(c) {
   const alarms = getAlarms();
   if (alarms.length === 0) {
-    return `<div style="text-align:center;padding:20px;color:${c.groen}"><div style="font-size:28px;margin-bottom:6px">\u2713</div><div style="font-size:14px;font-weight:500">Alles gekoppeld</div></div>`;
+    return `<div style="text-align:center;padding:20px;color:${c.groen}"><div style="font-size:28px;margin-bottom:6px">\u2713</div><div style="font-size:14px;font-weight:500">Geen alerts</div></div>`;
   }
-  let html = '<div style="display:flex;flex-direction:column;gap:6px">';
-  alarms.forEach(a => {
-    const col = a.level==='rood' ? c.rood : a.level==='grijs' ? c.grijs : c.oranje;
-    html += `<div style="padding:10px 12px;border-radius:4px;font-size:12px;font-weight:300;background:${col}06;border:1px solid ${col}22;display:flex;align-items:center;gap:8px">
-      <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
-      <span style="flex:1">${esc(a.msg)}</span>
-      ${a.m ? `<button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="alertGoToMatch" data-id="${a.m.id}">Bewerk \u2192</button>` : ''}
-    </div>`;
-  });
-  html += '</div>';
+  const matchAlarms = alarms.filter(a => a.type === 'match');
+  const actionAlarms = alarms.filter(a => a.type === 'action');
+  function renderGroup(items) {
+    let h = '';
+    items.forEach(a => {
+      const col = a.level==='rood' ? c.rood : a.level==='grijs' ? c.grijs : '#e67e22';
+      h += `<div style="padding:10px 12px;border-radius:4px;font-size:12px;font-weight:300;background:${col}08;border:1px solid ${col}22;display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+        <span style="flex:1">${esc(a.msg)}</span>
+        ${a.m ? `<button class="btn btn-grey btn-sm" style="border:1px solid ${c.zachtgrijs}" data-action="alertGoToMatch" data-id="${a.m.id}">Bewerk \u2192</button>` : ''}
+      </div>`;
+    });
+    return h;
+  }
+  let html = '';
+  if (matchAlarms.length > 0) {
+    html += `<div style="font-size:12px;font-weight:600;color:${c.txtPrimary};margin-bottom:6px">Koppelingen (${matchAlarms.length})</div>`;
+    html += `<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:16px">${renderGroup(matchAlarms)}</div>`;
+  }
+  if (actionAlarms.length > 0) {
+    html += `<div style="font-size:12px;font-weight:600;color:${c.txtPrimary};margin-bottom:6px">Acties (${actionAlarms.length})</div>`;
+    html += `<div style="display:flex;flex-direction:column;gap:5px">${renderGroup(actionAlarms)}</div>`;
+  }
   return html;
 }
 
