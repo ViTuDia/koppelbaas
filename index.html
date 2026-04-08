@@ -3334,7 +3334,7 @@ function setupEventListeners() {
     if (!targetEl) return;
     const dropTarget = findDropTargetAt(targetEl);
     if (!dropTarget || dropTarget.dataset.dragId === dragSrcId) {
-      if (lastIndicatorId) clearDragIndicators();
+      // Geen geldig target gevonden — behoud huidige indicator als die er is
       return;
     }
 
@@ -3658,12 +3658,12 @@ function setupEventListeners() {
   });
 
   document.body.addEventListener('dragover', e => {
-    // Als pointer over de drag-indicator zelf gaat, kijk erachter
+    // Bepaal echt target: kijk door drag-indicator heen
     let tgt = e.target;
     if (tgt === dragInd || dragInd.contains(tgt)) {
-      dragInd.style.display = 'none';
+      dragInd.style.visibility = 'hidden';
       tgt = document.elementFromPoint(e.clientX, e.clientY) || tgt;
-      dragInd.style.display = 'block';
+      dragInd.style.visibility = '';
     }
     const col = tgt.closest('[data-stage]');
     const kansenPanel = tgt.closest('#kansen-panel');
