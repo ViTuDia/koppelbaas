@@ -716,15 +716,16 @@ function enterApp() {
 
 // Bij opstarten: check of er een hash in Firebase staat
 KB.checkInitialState = async function() {
-  // Harde fallback: als na 4 seconden niets getoond is, forceer setup-scherm
+  // Harde fallback: als na 8 seconden niets getoond is, toon login-scherm met foutmelding
+  // (login-mode i.p.v. setup-mode om accidenteel overschrijven van bestaand wachtwoord te voorkomen)
   let resolved = false;
   const fallbackTimer = setTimeout(() => {
     if (!resolved) {
       resolved = true;
-      showPanel('setup-mode');
-      document.getElementById('setup-error').textContent = 'Firebase reageert niet. Controleer je verbinding.';
+      showPanel('login-mode');
+      document.getElementById('login-error').textContent = 'Firebase reageert niet. Controleer je verbinding en herlaad de pagina.';
     }
-  }, 4000);
+  }, 8000);
 
   try {
     if (!db) initFirebase();
@@ -810,6 +811,14 @@ KB.handleSetup = async function() {
   errEl.textContent = 'Bezig...';
   try {
     if (!db) initFirebase();
+    // Veiligheidscheck: nooit een bestaand wachtwoord overschrijven via setup
+    const existsSnap = await db.ref('meta/passwordHash').once('value');
+    if (existsSnap.val()) {
+      errEl.style.color = '';
+      errEl.textContent = 'Er is al een wachtwoord ingesteld. Pagina wordt herladen.';
+      setTimeout(() => location.reload(), 1500);
+      return;
+    }
     const salt = generateSalt();
     const hashed = await hashPassword(pw1, salt);
     await fbMulti({
