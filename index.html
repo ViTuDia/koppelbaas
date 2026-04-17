@@ -663,10 +663,16 @@ function fbMulti(updates) { return db.ref().update(updates); }
 
 // ─── H. LOGIN ────────────────────────────────────
 
-async function hashPassword(pw) {
-  const enc = new TextEncoder().encode(pw);
+async function hashPassword(pw, salt) {
+  const enc = new TextEncoder().encode((salt || '') + pw);
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function generateSalt() {
+  const arr = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 function hideAllLoginPanels() {
@@ -798,14 +804,18 @@ KB.handleSetup = async function() {
   const errEl = document.getElementById('setup-error');
   errEl.textContent = '';
   if (!pw1) { errEl.textContent = 'Voer een wachtwoord in.'; return; }
-  if (pw1.length < 4) { errEl.textContent = 'Minimaal 4 tekens.'; return; }
+  if (pw1.length < 8) { errEl.textContent = 'Minimaal 8 tekens.'; return; }
   if (pw1 !== pw2) { errEl.textContent = 'Wachtwoorden komen niet overeen.'; return; }
   errEl.style.color = '#d9a300';
   errEl.textContent = 'Bezig...';
   try {
     if (!db) initFirebase();
-    const hashed = await hashPassword(pw1);
-    await db.ref('meta/passwordHash').set(hashed);
+    const salt = generateSalt();
+    const hashed = await hashPassword(pw1, salt);
+    await fbMulti({
+      'meta/passwordHash': hashed,
+      'meta/passwordSalt': salt
+    });
     showPanel('setup-done');
   } catch(e) {
     errEl.style.color = '';
@@ -819,15 +829,30 @@ KB.handleLogin = async function() {
   document.getElementById('login-error').textContent = '';
   try {
     if (!db) initFirebase();
-    const snap = await db.ref('meta/passwordHash').once('value');
-    const stored = snap.val();
+    const [hashSnap, saltSnap] = await Promise.all([
+      db.ref('meta/passwordHash').once('value'),
+      db.ref('meta/passwordSalt').once('value')
+    ]);
+    const stored = hashSnap.val();
+    const storedSalt = saltSnap.val() || '';
     if (!stored) {
       showPanel('setup-mode');
       return;
     }
-    const hashed = await hashPassword(pw);
+    const hashed = await hashPassword(pw, storedSalt);
     if (hashed === stored) {
-      _sessionHash = hashed;
+      if (!storedSalt) {
+        // Legacy migratie: upgrade ongesalt hash naar gesalt
+        const newSalt = generateSalt();
+        const newHash = await hashPassword(pw, newSalt);
+        _sessionHash = newHash;
+        await fbMulti({
+          'meta/passwordHash': newHash,
+          'meta/passwordSalt': newSalt
+        });
+      } else {
+        _sessionHash = hashed;
+      }
       enterApp();
     } else {
       document.getElementById('login-error').textContent = 'Onjuist wachtwoord.';
@@ -2307,10 +2332,11 @@ KB.toggleFeature = function(key) {
 KB.exportBackup = async function() {
   const md = STATE.ui.modalData;
   try {
-    // Lees ook meta, maar sluit passwordHash uit
+    // Lees ook meta, maar sluit credentials uit
     const metaSnap = await db.ref('meta').once('value');
     const metaVal = metaSnap.val() || {};
     delete metaVal.passwordHash;
+    delete metaVal.passwordSalt;
     const backup = {
       _version: 1,
       _date: new Date().toISOString(),
@@ -2806,17 +2832,25 @@ function setupEventListeners() {
         (async () => {
           const md = STATE.ui.modalData; if (!md) return;
           if (!md.oldPw) { md.pwMsg = 'Voer huidig wachtwoord in.'; md.pwOk = false; renderModal(); return; }
-          if (!md.newPw || md.newPw.length < 4) { md.pwMsg = 'Nieuw wachtwoord: minimaal 4 tekens.'; md.pwOk = false; renderModal(); return; }
+          if (!md.newPw || md.newPw.length < 8) { md.pwMsg = 'Nieuw wachtwoord: minimaal 8 tekens.'; md.pwOk = false; renderModal(); return; }
           if (md.newPw !== md.newPw2) { md.pwMsg = 'Nieuwe wachtwoorden komen niet overeen.'; md.pwOk = false; renderModal(); return; }
           try {
-            const snap = await db.ref('meta/passwordHash').once('value');
-            const stored = snap.val();
-            const oldHash = await hashPassword(md.oldPw);
+            const [hashSnap, saltSnap] = await Promise.all([
+              db.ref('meta/passwordHash').once('value'),
+              db.ref('meta/passwordSalt').once('value')
+            ]);
+            const stored = hashSnap.val();
+            const storedSalt = saltSnap.val() || '';
+            const oldHash = await hashPassword(md.oldPw, storedSalt);
             if (oldHash !== stored) { md.pwMsg = 'Huidig wachtwoord is onjuist.'; md.pwOk = false; renderModal(); return; }
-            const newHash = await hashPassword(md.newPw);
-            await db.ref('meta/passwordHash').set(newHash);
+            const newSalt = generateSalt();
+            const newHash = await hashPassword(md.newPw, newSalt);
             _sessionHash = newHash;
             localStorage.setItem('kb_hash', newHash);
+            await fbMulti({
+              'meta/passwordHash': newHash,
+              'meta/passwordSalt': newSalt
+            });
             md.pwMsg = 'Wachtwoord gewijzigd!'; md.pwOk = true;
             md.oldPw = ''; md.newPw = ''; md.newPw2 = '';
             renderModal();
