@@ -320,7 +320,7 @@
       <select id="editSelect">
         <option value="">— Nieuw bericht —</option>
       </select>
-      <p class="hint">Kies een bestaand bericht om in te laden en aan te passen.</p>
+      <p class="hint">Toont de laatste gepubliceerde post — kies 'm om je vorige bericht aan te passen.</p>
     </div>
 
     <div class="field">
@@ -377,6 +377,15 @@
       </div>
       <textarea id="content" placeholder="Schrijf hier je bericht…&#10;&#10;Alinea's werken gewoon met een lege regel ertussen."></textarea>
       <p class="hint" id="contentHint">Max. 100 woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>Meta-beschrijving (SEO)</label>
+        <span class="counter" id="metaCounter">0 / 155</span>
+      </div>
+      <textarea id="metaDesc" rows="2" style="min-height:auto;line-height:1.5;font-size:14px" placeholder="Korte samenvatting voor zoekmachines"></textarea>
+      <p class="hint">Automatisch gegenereerd uit je bericht. Pas aan voor scherpere SEO. Max. 155 tekens.</p>
     </div>
 
     <div class="validation-box" id="validationBox"></div>
@@ -502,7 +511,43 @@
        words > max * 0.85 ? ' warn' : ' ok');
     contentHint.textContent = 'Max. ' + max + ' woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.';
   }
-  contentEl.addEventListener('input', refreshWordCount);
+  contentEl.addEventListener('input', () => {
+    refreshWordCount();
+    if (!metaUserEdited) autoFillMeta();
+  });
+
+  // ─── Meta-beschrijving (SEO) ──────────────────────────────────────────────
+  const META_MAX = 155;
+  const metaEl    = document.getElementById('metaDesc');
+  const metaCnt   = document.getElementById('metaCounter');
+  let metaUserEdited = false;
+
+  function refreshMetaCount() {
+    const len = metaEl.value.length;
+    metaCnt.textContent = len + ' / ' + META_MAX;
+    metaCnt.className = 'counter' +
+      (len === 0 ? '' :
+       len > META_MAX ? ' over' :
+       len > META_MAX * 0.85 ? ' warn' : ' ok');
+  }
+  function autoFillMeta() {
+    // Eerste ~155 tekens van content, op woordgrens afgekapt
+    const txt = contentEl.value.trim().replace(/\s+/g, ' ');
+    if (!txt) { metaEl.value = ''; refreshMetaCount(); return; }
+    if (txt.length <= META_MAX) {
+      metaEl.value = txt;
+    } else {
+      let cut = txt.slice(0, META_MAX - 1);
+      const lastSpace = cut.lastIndexOf(' ');
+      if (lastSpace > META_MAX * 0.6) cut = cut.slice(0, lastSpace);
+      metaEl.value = cut + '…';
+    }
+    refreshMetaCount();
+  }
+  metaEl.addEventListener('input', () => {
+    metaUserEdited = metaEl.value.trim().length > 0;
+    refreshMetaCount();
+  });
 
   // ─── Publicatiedatum default = nu (lokale tijd) ───────────────────────────
   const pubDateEl = document.getElementById('pubDate');
@@ -713,39 +758,45 @@
     setEditMode(false);
     titleEl.value = '';
     contentEl.value = '';
+    metaEl.value = '';
+    metaUserEdited = false;
     removeImage();
     pubDateEl.value = nowLocalISO();
     titleEl.dispatchEvent(new Event('input'));
     contentEl.dispatchEvent(new Event('input'));
+    refreshMetaCount();
     document.getElementById('pubStatus').className = 'pub-status';
     document.getElementById('pubStatus').textContent = '';
     editSelect.value = '';
   }
 
-  // Lijst van bestaande posts ophalen voor dropdown (alleen gepubliceerd, publiek endpoint)
-  async function loadEditList() {
+  // Laatste post ophalen voor dropdown (alleen gepubliceerd, publiek endpoint)
+  async function loadLatestPost() {
     try {
-      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts?per_page=50&_fields=id,title,date,status&orderby=date&order=desc');
+      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts?per_page=1&_fields=id,title,date&orderby=date&order=desc');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const posts = await res.json();
-      if (!Array.isArray(posts)) throw new Error('Onverwacht antwoord');
-      const opts = ['<option value="">— Nieuw bericht —</option>'];
-      posts.forEach(p => {
-        const d = new Date(p.date);
-        const label = d.toLocaleDateString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit'}) +
-                      ' — ' + (p.title?.rendered || '(zonder titel)');
-        opts.push('<option value="' + p.id + '">' + label.replace(/"/g,'&quot;') + '</option>');
-      });
-      editSelect.innerHTML = opts.join('');
-      editStatus.textContent = posts.length + ' berichten';
+      if (!Array.isArray(posts) || posts.length === 0) {
+        editSelect.innerHTML = '<option value="">— Nieuw bericht —</option>';
+        editStatus.textContent = '';
+        return;
+      }
+      const p = posts[0];
+      const d = new Date(p.date);
+      const label = d.toLocaleDateString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit'}) +
+                    ' — ' + (p.title?.rendered || '(zonder titel)');
+      editSelect.innerHTML =
+        '<option value="">— Nieuw bericht —</option>' +
+        '<option value="' + p.id + '">' + label.replace(/"/g,'&quot;') + '</option>';
+      editStatus.textContent = 'Laatste post #' + p.id;
       editStatus.className = 'counter ok';
     } catch (e) {
-      editStatus.textContent = 'Kon lijst niet laden';
+      editStatus.textContent = 'Kon niet laden';
       editStatus.className = 'counter warn';
-      console.warn('Edit-lijst:', e);
+      console.warn('Edit-dropdown:', e);
     }
   }
-  loadEditList();
+  loadLatestPost();
 
   // HTML → platte tekst voor textarea (omkering van nl2paragraphs + Terug-link strippen)
   function htmlToPlainText(html) {
@@ -778,13 +829,17 @@
     editStatus.textContent = 'Inladen…';
     editStatus.className = 'counter';
     try {
-      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts/' + id + '?_fields=id,title,content,date,categories,featured_media,link,status');
+      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts/' + id + '?_fields=id,title,content,excerpt,date,categories,featured_media,link,status');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const p = await res.json();
       currentPostId = p.id;
       titleEl.value   = p.title?.rendered || '';
       contentEl.value = htmlToPlainText(p.content?.rendered || '');
       pubDateEl.value = wpDateToLocal(p.date);
+      // Meta-beschrijving uit WP excerpt
+      metaEl.value = htmlToPlainText(p.excerpt?.rendered || '');
+      metaUserEdited = metaEl.value.trim().length > 0;
+      refreshMetaCount();
       // Categorie
       if (p.categories?.length) {
         const want = String(p.categories[0]);
@@ -876,6 +931,7 @@
       const body = {
         title:      titleEl.value.trim(),
         content:    nl2paragraphs(contentEl.value.trim()) + '\n' + TERUG_LINK,
+        excerpt:    metaEl.value.trim(),       // meta-beschrijving / WP excerpt
         status:     status,
         date:       dateStr,                   // lokale tijd, WP gebruikt site-TZ
         categories: [parseInt(catEl.value, 10) || 1],
@@ -899,6 +955,8 @@
       setEditMode(true);
       // Vernieuw bestaande-image referentie als er een nieuwe is geüpload
       if (mediaId) existingImageUrl = previewImgEl.src;
+      // Dropdown bijwerken zodat de net gepubliceerde post de "laatste" wordt
+      if (status === 'publish') loadLatestPost();
       statusEl.className = 'pub-status success';
       const verb = isUpdate
         ? (status === 'publish' ? 'Bijgewerkt' : 'Concept bijgewerkt')
