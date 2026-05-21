@@ -320,7 +320,7 @@
       <select id="editSelect">
         <option value="">— Nieuw bericht —</option>
       </select>
-      <p class="hint">Toont de laatste gepubliceerde post — kies 'm om je vorige bericht aan te passen.</p>
+      <p class="hint">Vul je credentials in om ook concepten te zien. Selecteer een post om in te laden en aan te passen.</p>
     </div>
 
     <div class="field">
@@ -770,10 +770,21 @@
     editSelect.value = '';
   }
 
-  // Laatste post ophalen voor dropdown (alleen gepubliceerd, publiek endpoint)
-  async function loadLatestPost() {
+  // Recente posts ophalen voor dropdown. Met auth: top 5 (incl. concepten).
+  // Zonder auth: laatste 1 publish.
+  async function loadLatestPost(useAuth) {
     try {
-      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts?per_page=1&_fields=id,title,date&orderby=date&order=desc');
+      let url, headers = {};
+      if (useAuth) {
+        const u = usernameEl.value.trim();
+        const p = appPwEl.value.trim();
+        if (!u || !p) return;  // niet beide gevuld, sla over
+        headers = { 'Authorization': 'Basic ' + btoa(u + ':' + p) };
+        url = SITE_URL + '/wp-json/wp/v2/posts?per_page=5&status=publish,draft&orderby=date&order=desc&_fields=id,title,date,status';
+      } else {
+        url = SITE_URL + '/wp-json/wp/v2/posts?per_page=1&_fields=id,title,date,status&orderby=date&order=desc';
+      }
+      const res = await fetch(url, { headers });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const posts = await res.json();
       if (!Array.isArray(posts) || posts.length === 0) {
@@ -781,14 +792,17 @@
         editStatus.textContent = '';
         return;
       }
-      const p = posts[0];
-      const d = new Date(p.date);
-      const label = d.toLocaleDateString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit'}) +
-                    ' — ' + (p.title?.rendered || '(zonder titel)');
-      editSelect.innerHTML =
-        '<option value="">— Nieuw bericht —</option>' +
-        '<option value="' + p.id + '">' + label.replace(/"/g,'&quot;') + '</option>';
-      editStatus.textContent = 'Laatste post #' + p.id;
+      const opts = ['<option value="">— Nieuw bericht —</option>'];
+      posts.forEach(p => {
+        const d = new Date(p.date);
+        const dateLbl = d.toLocaleDateString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit'});
+        const statusLbl = p.status === 'draft' ? ' (concept)' : '';
+        const title = p.title?.rendered || '(zonder titel)';
+        const label = dateLbl + statusLbl + ' — ' + title;
+        opts.push('<option value="' + p.id + '">' + label.replace(/"/g,'&quot;') + '</option>');
+      });
+      editSelect.innerHTML = opts.join('');
+      editStatus.textContent = useAuth ? posts.length + ' recente posts' : 'Laatste publish';
       editStatus.className = 'counter ok';
     } catch (e) {
       editStatus.textContent = 'Kon niet laden';
@@ -796,7 +810,14 @@
       console.warn('Edit-dropdown:', e);
     }
   }
-  loadLatestPost();
+  loadLatestPost(false);
+
+  // Zodra beide credentials zijn ingevuld: dropdown ververst met drafts erbij
+  function maybeReloadWithAuth() {
+    if (usernameEl.value.trim() && appPwEl.value.trim()) loadLatestPost(true);
+  }
+  usernameEl.addEventListener('blur', maybeReloadWithAuth);
+  appPwEl.addEventListener('blur', maybeReloadWithAuth);
 
   // HTML → platte tekst voor textarea (omkering van nl2paragraphs + Terug-link strippen)
   function htmlToPlainText(html) {
@@ -955,8 +976,8 @@
       setEditMode(true);
       // Vernieuw bestaande-image referentie als er een nieuwe is geüpload
       if (mediaId) existingImageUrl = previewImgEl.src;
-      // Dropdown bijwerken zodat de net gepubliceerde post de "laatste" wordt
-      if (status === 'publish') loadLatestPost();
+      // Dropdown bijwerken zodat de net gepubliceerde post (of het concept) erin staat
+      loadLatestPost(true);
       statusEl.className = 'pub-status success';
       const verb = isUpdate
         ? (status === 'publish' ? 'Bijgewerkt' : 'Concept bijgewerkt')
