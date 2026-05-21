@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>ARD — Kop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#fafaf9; --kaart:#ffffff; --kaartBorder:#e8e7e4;
+      --txtPrimary:#000000; --txtSecondary:#878786;
+      --lichtgrijs:#f4f3f1; --zachtgrijs:#e8e7e4;
+      --geel:#d9a300; --grijs:#878786;
+      --rood:#c22d0b; --groen:#007b2f; --oranje:#c97b1a; --blauw:#006f9d;
+      --inputBorder:#e8e7e4;
+      --header:#d9a300; --headerTxt:#000000; --headerSub:#00000088;
+      --catGroupBg:#f7f6f4;
+    }
+    body.dark {
+      --bg:#1a1a1a; --kaart:#252525; --kaartBorder:#3a3a3a;
+      --txtPrimary:#e8e8e8; --txtSecondary:#999999;
+      --lichtgrijs:#2a2a2a; --zachtgrijs:#3a3a3a;
+      --geel:#d9a300; --grijs:#999999;
+      --rood:#e85d3a; --groen:#2ea852; --oranje:#e0a030; --blauw:#4dabcf;
+      --inputBorder:#4a4a4a;
+      --header:#252525; --headerTxt:#ffffff; --headerSub:#ffffff66;
+      --catGroupBg:#232323;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body {
+      font-family:'Rubik','Helvetica Neue',sans-serif;
+      background:var(--bg); color:var(--txtPrimary);
+      min-height:100vh; display:flex; flex-direction:column;
+      align-items:center; padding:24px 20px 80px;
+      transition:background .15s, color .15s;
+    }
+
+    .topbar {
+      width:100%; max-width:720px; display:flex; align-items:center;
+      justify-content:space-between; margin-bottom:18px;
+    }
+    .brand { display:flex; flex-direction:column; gap:2px; }
+    .brand-title { font-size:18px; font-weight:600; letter-spacing:-.01em; }
+    .brand-sub { font-size:12px; color:var(--txtSecondary); }
+    .topbar-actions { display:flex; gap:8px; }
+    .icon-btn, .back-btn {
+      background:var(--kaart); color:var(--txtPrimary);
+      border:1px solid var(--kaartBorder); border-radius:6px;
+      padding:7px 12px; font-size:12px; font-family:inherit;
+      cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+      transition:background .15s, border-color .15s;
+    }
+    .icon-btn:hover, .back-btn:hover { background:var(--lichtgrijs); }
+    .icon-btn svg, .back-btn svg { vertical-align:middle; }
+
+    .card {
+      background:var(--kaart); border:1px solid var(--kaartBorder);
+      border-radius:10px; width:100%; max-width:720px; overflow:hidden;
+      margin-bottom:14px;
+    }
+
+    .config-bar {
+      background:var(--catGroupBg); border-bottom:1px solid var(--kaartBorder);
+      padding:14px 18px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
+    }
+    .config-field { flex:1; min-width:150px; }
+    .config-field.wide { flex:2; min-width:200px; }
+    .config-bar label, .field-header label {
+      font-size:11px; font-weight:600; text-transform:uppercase;
+      letter-spacing:.06em; color:var(--txtSecondary); display:block; margin-bottom:4px;
+    }
+    .config-bar input {
+      font-size:13px; line-height:20px; height:32px;
+      border:1px solid var(--inputBorder); border-radius:5px;
+      padding:0 10px; background:var(--bg); color:var(--txtPrimary);
+      outline:none; width:100%; font-family:inherit;
+      transition:border-color .15s;
+      -webkit-appearance:none; appearance:none;
+    }
+    .config-bar input::-webkit-credentials-auto-fill-button,
+    .config-bar input::-webkit-strong-password-auto-fill-button { display:none !important; }
+    .config-bar input:hover { border-color:var(--grijs); }
+    .config-bar input:focus { border-color:var(--geel); }
+
+    .form-body { padding:22px 22px 18px; }
+    .field { margin-bottom:20px; }
+    .field-header {
+      display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px;
+    }
+    .counter {
+      font-size:12px; color:var(--txtSecondary); font-variant-numeric:tabular-nums;
+      transition:color .15s;
+    }
+    .counter.warn { color:var(--oranje); }
+    .counter.over { color:var(--rood); font-weight:600; }
+    .counter.ok   { color:var(--groen); }
+
+    .hint { font-size:11px; color:var(--txtSecondary); margin-top:5px; }
+
+    input[type="text"], input[type="datetime-local"], textarea, select {
+      width:100%; border:1px solid var(--inputBorder); border-radius:7px;
+      padding:11px 13px; font-size:15px; font-family:inherit;
+      color:var(--txtPrimary); outline:none; resize:none; background:var(--bg);
+      transition:border-color .15s;
+    }
+    input[type="text"]:hover, input[type="datetime-local"]:hover,
+    textarea:hover, select:hover { border-color:var(--grijs); }
+    input[type="text"]:focus, input[type="datetime-local"]:focus,
+    textarea:focus, select:focus { border-color:var(--geel); }
+    input:focus::placeholder, textarea:focus::placeholder { color:transparent; }
+    #title { font-size:19px; font-weight:600; }
+    #content { min-height:220px; line-height:1.6; }
+    select {
+      appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23878786' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat:no-repeat; background-position:right 14px center;
+      padding-right:34px;
+    }
+
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media (max-width:540px) { .row-2 { grid-template-columns:1fr; } }
+
+    .image-drop {
+      border:2px dashed var(--zachtgrijs); border-radius:9px;
+      padding:26px 18px; text-align:center;
+      cursor:pointer; transition:border-color .15s, background .15s;
+      position:relative; overflow:hidden;
+    }
+    .image-drop:hover, .image-drop.drag-over {
+      border-color:var(--geel); background:var(--lichtgrijs);
+    }
+    .image-drop input[type="file"] {
+      position:absolute; inset:0; opacity:0; cursor:pointer;
+      width:100%; height:100%; border:none; padding:0;
+    }
+    .image-drop-label { font-size:14px; color:var(--txtSecondary); pointer-events:none; }
+    .image-drop-label strong { color:var(--txtPrimary); display:block; margin-bottom:4px; }
+    .image-drop-label span { font-size:12px; color:var(--txtSecondary); }
+
+    .image-preview {
+      margin-top:12px; display:none;
+      border:1px solid var(--kaartBorder); border-radius:7px; overflow:hidden;
+    }
+    .image-preview img { width:100%; display:block; max-height:280px; object-fit:cover; }
+    .image-info {
+      padding:8px 12px; background:var(--catGroupBg);
+      font-size:12px; color:var(--txtSecondary);
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .image-info .remove-img {
+      background:none; border:none; color:var(--rood);
+      cursor:pointer; font-size:12px; font-weight:600; padding:0; font-family:inherit;
+    }
+    .image-status { display:inline-block; margin-left:8px; font-size:11px; font-weight:600;
+      text-transform:uppercase; letter-spacing:.05em; }
+    .image-status.valid { color:var(--groen); }
+    .image-status.invalid { color:var(--rood); }
+
+    .validation-box {
+      display:none; background:color-mix(in srgb, var(--rood) 10%, transparent);
+      border:1px solid color-mix(in srgb, var(--rood) 40%, transparent);
+      border-radius:7px; padding:11px 15px; margin-bottom:14px;
+      font-size:13px; color:var(--rood); line-height:1.5;
+    }
+    .validation-box ul { padding-left:18px; margin-top:4px; }
+
+    .actions { display:flex; gap:10px; align-items:center; padding-top:4px; flex-wrap:wrap; }
+    .btn {
+      padding:10px 20px; border-radius:7px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; font-family:inherit;
+      transition:background .15s, transform .1s, opacity .15s;
+    }
+    .btn:active { transform:scale(.97); }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+    .btn-primary { background:var(--txtPrimary); color:var(--bg); }
+    .btn-primary:hover:not(:disabled) { opacity:.85; }
+    .btn-draft { background:var(--bg); color:var(--txtPrimary); border:1px solid var(--inputBorder); }
+    .btn-draft:hover:not(:disabled) { background:var(--lichtgrijs); }
+
+    .pub-status {
+      margin-left:auto; font-size:13px; padding:8px 13px; border-radius:6px; display:none;
+    }
+    .pub-status.success {
+      background:color-mix(in srgb, var(--groen) 14%, transparent);
+      color:var(--groen); display:block;
+    }
+    .pub-status.error {
+      background:color-mix(in srgb, var(--rood) 14%, transparent);
+      color:var(--rood); display:block;
+    }
+    .pub-status.loading {
+      background:color-mix(in srgb, var(--blauw) 14%, transparent);
+      color:var(--blauw); display:block;
+    }
+    .pub-status a { color:inherit; text-decoration:underline; }
+
+    .setup-note {
+      max-width:720px; width:100%;
+      background:color-mix(in srgb, var(--geel) 12%, transparent);
+      border:1px solid color-mix(in srgb, var(--geel) 45%, transparent);
+      border-radius:8px; padding:14px 18px;
+      font-size:13px; line-height:1.55; color:var(--txtPrimary);
+    }
+    .setup-note strong { display:block; margin-bottom:6px; }
+    .setup-note ol { padding-left:18px; margin-top:6px; }
+    .setup-note ol li { margin-bottom:3px; }
+    .setup-note code {
+      background:var(--lichtgrijs); padding:1px 5px; border-radius:4px;
+      font-family:'SF Mono', Menlo, monospace; font-size:12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-title">ARD — Kop</div>
+    <div class="brand-sub">Nieuwsbericht op atelierruimdenkers.nl plaatsen</div>
+  </div>
+  <div class="topbar-actions">
+    <a class="back-btn" href="index.html" title="Terug naar Koppelbaas">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      Koppelbaas
+    </a>
+    <button class="icon-btn" id="themeBtn" title="Wissel thema"></button>
+  </div>
+</div>
+
+<div class="card">
+
+  <div class="config-bar">
+    <div class="config-field">
+      <label>Gebruikersnaam</label>
+      <input type="text" id="username" autocomplete="username" placeholder="vincent" />
+    </div>
+    <div class="config-field wide">
+      <label>Application Password</label>
+      <input type="password" id="appPassword" name="password" autocomplete="current-password" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx" />
+    </div>
+  </div>
+
+  <div class="form-body">
+
+    <div class="field">
+      <div class="field-header">
+        <label>Categorie</label>
+        <span class="counter" id="catStatus"></span>
+      </div>
+      <select id="category"><option value="1">Nieuws</option></select>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>Titel</label>
+        <span class="counter" id="titleCounter">0 / 70</span>
+      </div>
+      <input type="text" id="title" placeholder="Titel van het bericht" maxlength="100" />
+      <p class="hint">Richtlijn: max. 70 tekens voor goede leesbaarheid en SEO.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>Uitgelichte afbeelding</label>
+        <span class="counter" id="imgCounter">Geen afbeelding</span>
+      </div>
+      <div class="image-drop" id="imageDrop">
+        <input type="file" id="imageFile" accept="image/jpeg" />
+        <div class="image-drop-label">
+          <strong>Klik of sleep een afbeelding hierheen</strong>
+          <span>JPG &nbsp;·&nbsp; exact 1100px breed &nbsp;·&nbsp; max. 825px hoog</span>
+        </div>
+      </div>
+      <div class="image-preview" id="imagePreview">
+        <img id="previewImg" src="" alt="Preview" />
+        <div class="image-info">
+          <span id="imageInfoText">—</span>
+          <button type="button" class="remove-img" id="removeImgBtn">✕ Verwijderen</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>Publicatiedatum</label>
+        <span class="counter" id="dateHint">Standaard: nu</span>
+      </div>
+      <input type="datetime-local" id="pubDate" />
+      <p class="hint">Terugdateren mag. Vooruitdateren plant automatisch (status wordt 'future' in WordPress).</p>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
+        <label>Bericht</label>
+        <span class="counter" id="wordCounter">0 woorden</span>
+      </div>
+      <textarea id="content" placeholder="Schrijf hier je bericht…&#10;&#10;Alinea's werken gewoon met een lege regel ertussen."></textarea>
+      <p class="hint">Richtlijn: max. 100 woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.</p>
+    </div>
+
+    <div class="validation-box" id="validationBox"></div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="publishBtn">Publiceer</button>
+      <button class="btn btn-draft" id="draftBtn">Sla op als concept</button>
+      <span class="pub-status" id="pubStatus"></span>
+    </div>
+
+  </div>
+</div>
+
+<div class="setup-note" id="setupNote">
+  <strong>Eerste keer: Application Password aanmaken</strong>
+  <ol>
+    <li>Log in op WordPress → Gebruikers → Jouw profiel</li>
+    <li>Scroll naar <strong>Application Passwords</strong></li>
+    <li>Geef het een naam (bijv. <code>Kop</code>) en klik op <em>Nieuw application password toevoegen</em></li>
+    <li>WordPress toont eenmalig een 24-tekens code (<code>xxxx xxxx xxxx xxxx xxxx xxxx</code>) — kopieer 'm en bewaar in je password manager</li>
+    <li>Vul site-URL en gebruikersnaam in (worden onthouden); plak het password — het wordt niet opgeslagen, je password manager kan het volgende keer invullen</li>
+  </ol>
+</div>
+
+<script>
+  const TITLE_MAX = 70;
+  const WORDS_MAX = 100;
+  const IMG_W = 1100;
+  const IMG_MAX_H = 825;
+  const DEFAULT_SITE = 'https://www.atelierruimdenkers.nl';
+  const TERUG_LINK = '<p><a href="http://www.atelierruimdenkers.nl/nieuws/">Terug</a></p>';
+
+  // ─── Klik op veld met vooringevulde waarde → selecteer alles ─────────────
+  document.querySelectorAll('input[type="text"], input[type="datetime-local"]').forEach(el => {
+    el.addEventListener('focus', () => {
+      if (el.value) setTimeout(() => el.select(), 0);
+    });
+  });
+
+  // ─── Theme ─────────────────────────────────────────────────────────────────
+  const themeBtn = document.getElementById('themeBtn');
+  const sunSVG  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  const moonSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+  function applyTheme() {
+    const dark = localStorage.getItem('kop_theme') === 'dark';
+    document.body.classList.toggle('dark', dark);
+    themeBtn.innerHTML = dark ? sunSVG + ' Licht' : moonSVG + ' Donker';
+  }
+  themeBtn.addEventListener('click', () => {
+    const dark = localStorage.getItem('kop_theme') === 'dark';
+    localStorage.setItem('kop_theme', dark ? 'light' : 'dark');
+    applyTheme();
+  });
+  applyTheme();
+
+  // ─── Config (username persist, appPassword nooit, siteUrl hardcoded) ──────
+  const SITE_URL = DEFAULT_SITE;
+  const usernameEl = document.getElementById('username');
+  const appPwEl    = document.getElementById('appPassword');
+
+  usernameEl.value = localStorage.getItem('kop_username') || '';
+  usernameEl.addEventListener('change', () => localStorage.setItem('kop_username', usernameEl.value.trim()));
+
+  if (localStorage.getItem('kop_username')) {
+    document.getElementById('setupNote').style.display = 'none';
+  }
+
+  // ─── Titelcounter ─────────────────────────────────────────────────────────
+  const titleEl  = document.getElementById('title');
+  const titleCnt = document.getElementById('titleCounter');
+  titleEl.addEventListener('input', () => {
+    const len = titleEl.value.length;
+    titleCnt.textContent = len + ' / ' + TITLE_MAX;
+    titleCnt.className = 'counter' +
+      (len > TITLE_MAX ? ' over' : len > TITLE_MAX * 0.85 ? ' warn' : len > 0 ? ' ok' : '');
+  });
+
+  // ─── Woordenteller ────────────────────────────────────────────────────────
+  const contentEl = document.getElementById('content');
+  const wordCnt   = document.getElementById('wordCounter');
+  contentEl.addEventListener('input', () => {
+    const words = contentEl.value.trim().split(/\s+/).filter(w => w).length;
+    wordCnt.textContent = words + ' / ' + WORDS_MAX;
+    wordCnt.className = 'counter' +
+      (words === 0 ? '' :
+       words > WORDS_MAX ? ' over' :
+       words > WORDS_MAX * 0.85 ? ' warn' : ' ok');
+  });
+
+  // ─── Publicatiedatum default = nu (lokale tijd) ───────────────────────────
+  const pubDateEl = document.getElementById('pubDate');
+  function nowLocalISO() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate())
+         + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  pubDateEl.value = nowLocalISO();
+
+  // ─── Slug helper ──────────────────────────────────────────────────────────
+  function slugify(str) {
+    return (str || '').normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')   // strip diacritics
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-');
+  }
+
+  // ─── Categorieën ophalen ──────────────────────────────────────────────────
+  const catEl = document.getElementById('category');
+  const catStatus = document.getElementById('catStatus');
+  async function loadCategories() {
+    try {
+      const res = await fetch(SITE_URL + '/wp-json/wp/v2/categories?per_page=100&_fields=id,name,slug');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const cats = await res.json();
+      if (!Array.isArray(cats) || cats.length === 0) throw new Error('Lege lijst');
+      const lastId = parseInt(localStorage.getItem('kop_lastCategoryId') || '1', 10);
+      catEl.innerHTML = cats.map(c =>
+        '<option value="' + c.id + '"' + (c.id === lastId ? ' selected' : '') + '>' + c.name + '</option>'
+      ).join('');
+      catStatus.textContent = cats.length + ' categorieën';
+      catStatus.className = 'counter ok';
+    } catch (e) {
+      catEl.disabled = true;
+      catStatus.textContent = 'Standaard (Nieuws)';
+      catStatus.className = 'counter warn';
+      console.warn('Kan categorieën niet laden:', e);
+    }
+  }
+  loadCategories();
+  catEl.addEventListener('change', () => {
+    localStorage.setItem('kop_lastCategoryId', catEl.value);
+  });
+
+  // ─── Afbeelding ───────────────────────────────────────────────────────────
+  let imageFile  = null;
+  let imageValid = false;
+
+  const imageFileEl   = document.getElementById('imageFile');
+  const imageDropEl   = document.getElementById('imageDrop');
+  const imagePreviewEl= document.getElementById('imagePreview');
+  const previewImgEl  = document.getElementById('previewImg');
+  const imageInfoEl   = document.getElementById('imageInfoText');
+  const imgCounterEl  = document.getElementById('imgCounter');
+
+  imageFileEl.addEventListener('change', e => handleImage(e.target.files[0]));
+  imageDropEl.addEventListener('dragover', e => { e.preventDefault(); imageDropEl.classList.add('drag-over'); });
+  imageDropEl.addEventListener('dragleave', () => imageDropEl.classList.remove('drag-over'));
+  imageDropEl.addEventListener('drop', e => {
+    e.preventDefault();
+    imageDropEl.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) handleImage(f);
+  });
+  document.getElementById('removeImgBtn').addEventListener('click', removeImage);
+
+  function handleImage(file) {
+    if (!file) return;
+
+    // 1. Type-check
+    if (file.type !== 'image/jpeg') {
+      imageFile = null; imageValid = false;
+      imagePreviewEl.style.display = 'none';
+      imgCounterEl.textContent = '✗ Alleen JPG';
+      imgCounterEl.className = 'counter over';
+      alert('Alleen JPG toegestaan. Converteer eerst je afbeelding (PNG/WebP worden niet geaccepteerd).');
+      imageFileEl.value = '';
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+
+      // 2. Breedte exact 1100
+      if (w !== IMG_W) {
+        URL.revokeObjectURL(url);
+        imageFile = null; imageValid = false;
+        imagePreviewEl.style.display = 'none';
+        imgCounterEl.textContent = '✗ Breedte ' + w + 'px';
+        imgCounterEl.className = 'counter over';
+        alert('Afbeelding moet exact ' + IMG_W + 'px breed zijn (was ' + w + 'px). Resize eerst in Photoshop/Preview.');
+        imageFileEl.value = '';
+        return;
+      }
+      // 3. Hoogte max 825
+      if (h > IMG_MAX_H) {
+        URL.revokeObjectURL(url);
+        imageFile = null; imageValid = false;
+        imagePreviewEl.style.display = 'none';
+        imgCounterEl.textContent = '✗ Hoogte ' + h + 'px';
+        imgCounterEl.className = 'counter over';
+        alert('Afbeelding mag max. ' + IMG_MAX_H + 'px hoog zijn (was ' + h + 'px). Knip eerst bij.');
+        imageFileEl.value = '';
+        return;
+      }
+
+      // OK
+      imageFile = file;
+      imageValid = true;
+      previewImgEl.src = url;
+      imagePreviewEl.style.display = 'block';
+      imageInfoEl.innerHTML = w + '×' + h + 'px &nbsp;·&nbsp; ' +
+        (file.size / 1024 / 1024).toFixed(1) + ' MB ' +
+        '<span class="image-status valid">✓ OK</span>';
+      imgCounterEl.textContent = '✓ Geldig';
+      imgCounterEl.className = 'counter ok';
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      alert('Kon afbeelding niet inlezen.');
+    };
+    img.src = url;
+  }
+
+  function removeImage() {
+    imageFile = null; imageValid = false;
+    imageFileEl.value = '';
+    previewImgEl.src = '';
+    imagePreviewEl.style.display = 'none';
+    imgCounterEl.textContent = 'Geen afbeelding';
+    imgCounterEl.className = 'counter';
+  }
+
+  // ─── Validatie ────────────────────────────────────────────────────────────
+  function validate(status) {
+    const errors = [];
+    const title   = titleEl.value.trim();
+    const content = contentEl.value.trim();
+    const words   = content.split(/\s+/).filter(w => w).length;
+
+    if (!title) errors.push('Vul een titel in.');
+    if (title.length > TITLE_MAX)
+      errors.push('Titel is te lang (' + title.length + ' tekens, max. ' + TITLE_MAX + ').');
+    if (!content) errors.push('Schrijf een bericht.');
+    if (content && words > WORDS_MAX)
+      errors.push('Bericht is te lang (' + words + ' woorden, max. ' + WORDS_MAX + ').');
+    if (imageFile && !imageValid)
+      errors.push('Afbeelding voldoet niet aan de eisen.');
+    if (!pubDateEl.value)
+      errors.push('Vul een publicatiedatum in.');
+
+    const box = document.getElementById('validationBox');
+    if (errors.length) {
+      box.style.display = 'block';
+      box.innerHTML = '<strong>Controleer het volgende:</strong><ul>' +
+        errors.map(e => '<li>' + e + '</li>').join('') + '</ul>';
+    } else {
+      box.style.display = 'none';
+    }
+    return errors.length === 0;
+  }
+
+  // ─── Publiceren ───────────────────────────────────────────────────────────
+  function nl2paragraphs(text) {
+    return text.split(/\n\s*\n/)
+      .map(p => '<p>' + p.trim().replace(/\n/g, '<br>') + '</p>')
+      .join('\n');
+  }
+
+  document.getElementById('publishBtn').addEventListener('click', () => submit('publish'));
+  document.getElementById('draftBtn').addEventListener('click',   () => submit('draft'));
+
+  async function submit(status) {
+    if (!validate(status)) return;
+
+    const username   = usernameEl.value.trim();
+    const appPassword= appPwEl.value.trim();
+    const statusEl   = document.getElementById('pubStatus');
+
+    if (!username || !appPassword) {
+      statusEl.className = 'pub-status error';
+      statusEl.textContent = 'Vul gebruikersnaam én Application Password in.';
+      return;
+    }
+
+    const creds = btoa(username + ':' + appPassword);
+    const authHdr = { 'Authorization': 'Basic ' + creds };
+
+    statusEl.className = 'pub-status loading';
+    statusEl.textContent = 'Bezig…';
+
+    try {
+      let mediaId = null;
+      if (imageFile && imageValid) {
+        statusEl.textContent = 'Afbeelding uploaden…';
+        const slug = slugify(titleEl.value);
+        const renamed = new File(
+          [imageFile],
+          'AtelierRuimDenkers-' + (slug || 'foto') + '.jpg',
+          { type: 'image/jpeg' }
+        );
+        const fd = new FormData();
+        fd.append('file', renamed, renamed.name);
+
+        const mr = await fetch(SITE_URL + '/wp-json/wp/v2/media', {
+          method: 'POST', headers: { ...authHdr }, body: fd,
+        });
+        if (!mr.ok) {
+          let msg = 'HTTP ' + mr.status;
+          try { const j = await mr.json(); msg = j.message || msg; } catch(e){}
+          throw new Error('Afbeelding uploaden mislukt: ' + msg);
+        }
+        const md = await mr.json();
+        mediaId = md.id;
+      }
+
+      statusEl.textContent = status === 'publish' ? 'Publiceren…' : 'Concept opslaan…';
+      // WP REST API wil ISO 8601 mét seconden. datetime-local geeft alleen YYYY-MM-DDTHH:MM.
+      const dateStr = pubDateEl.value.length === 16 ? pubDateEl.value + ':00' : pubDateEl.value;
+      const body = {
+        title:      titleEl.value.trim(),
+        content:    nl2paragraphs(contentEl.value.trim()) + '\n' + TERUG_LINK,
+        status:     status,
+        date:       dateStr,                   // lokale tijd, WP gebruikt site-TZ
+        categories: [parseInt(catEl.value, 10) || 1],
+      };
+      if (mediaId) body.featured_media = mediaId;
+
+      const pr = await fetch(SITE_URL + '/wp-json/wp/v2/posts', {
+        method: 'POST',
+        headers: { ...authHdr, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const pd = await pr.json();
+      if (!pr.ok) throw new Error(pd.message || 'Onbekende fout bij aanmaken post.');
+
+      if (status === 'publish') {
+        statusEl.className = 'pub-status success';
+        statusEl.innerHTML = '✓ Gepubliceerd — <a href="' + pd.link + '" target="_blank">bekijk op site</a>';
+        // Reset
+        titleEl.value = ''; contentEl.value = '';
+        removeImage();
+        pubDateEl.value = nowLocalISO();
+        titleEl.dispatchEvent(new Event('input'));
+        contentEl.dispatchEvent(new Event('input'));
+      } else {
+        statusEl.className = 'pub-status success';
+        statusEl.innerHTML = '✓ Concept opgeslagen — <a href="' + SITE_URL + '/wp-admin/post.php?post=' + pd.id + '&action=edit" target="_blank">bewerken in WordPress</a>';
+      }
+    } catch (err) {
+      statusEl.className = 'pub-status error';
+      statusEl.textContent = err.message || 'Verbindingsfout.';
+      console.error(err);
+    }
+  }
+</script>
+
+</body>
+</html>
