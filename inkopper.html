@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <title>ARD — Kop</title>
+  <title>ARD — In-Kopper</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
@@ -34,32 +34,64 @@
       font-family:'Rubik','Helvetica Neue',sans-serif;
       background:var(--bg); color:var(--txtPrimary);
       min-height:100vh; display:flex; flex-direction:column;
-      align-items:center; padding:24px 20px 80px;
+      align-items:center; padding:0;
       transition:background .15s, color .15s;
     }
+    body { --footerBg:#ffffff; }
+    body.dark { --footerBg:#1e1e1e; }
 
-    .topbar {
-      width:100%; max-width:720px; display:flex; align-items:center;
-      justify-content:space-between; margin-bottom:18px;
+    /* Gouden header — identiek aan Koppelbaas */
+    .header {
+      background:var(--header); color:var(--headerTxt);
+      padding:14px 24px; width:100%;
+      display:flex; justify-content:space-between; align-items:center;
+      flex-wrap:wrap; gap:10px; margin-bottom:24px;
     }
-    .brand { display:flex; flex-direction:column; gap:2px; }
-    .brand-title { font-size:18px; font-weight:600; letter-spacing:-.01em; }
-    .brand-sub { font-size:12px; color:var(--txtSecondary); }
-    .topbar-actions { display:flex; gap:8px; }
-    .icon-btn, .back-btn {
-      background:var(--kaart); color:var(--txtPrimary);
-      border:1px solid var(--kaartBorder); border-radius:6px;
-      padding:7px 12px; font-size:12px; font-family:inherit;
-      cursor:pointer; display:inline-flex; align-items:center; gap:6px;
-      transition:background .15s, border-color .15s;
+    .header-left { display:flex; align-items:center; gap:18px; }
+    .header-logo-ard { font-size:26px; font-weight:700; letter-spacing:3px; }
+    .header-logo-sub { font-size:8px; font-weight:300; letter-spacing:2px; color:var(--headerSub); margin-top:2px; }
+    .header-div { width:1px; height:32px; background:var(--headerDiv); }
+    .header-title-label { font-size:9px; font-weight:300; letter-spacing:2px; color:var(--headerSub); text-transform:uppercase; }
+    .header-title-name { font-size:20px; font-weight:300; margin-top:2px; }
+    .header-right { display:flex; gap:6px; align-items:center; }
+    .header-btn {
+      color:#fff; font-size:12px; padding:6px 12px; height:34px;
+      display:inline-flex; align-items:center; justify-content:center; gap:4px;
+      transition:opacity .15s; border:none; border-radius:6px;
+      cursor:pointer; font-family:inherit; text-decoration:none;
     }
-    .icon-btn:hover, .back-btn:hover { background:var(--lichtgrijs); }
-    .icon-btn svg, .back-btn svg { vertical-align:middle; }
+    .header-btn:hover { opacity:.75; background:#555 !important; }
+    .header-btn-icon { width:36px; padding:0; }
+    .header-icon { font-size:18px; line-height:1; }
+    @media (max-width:540px) {
+      .header { padding:10px 12px; gap:6px; }
+      .header-left { gap:10px; }
+      .header-logo-ard { font-size:20px; letter-spacing:2px; }
+      .header-logo-sub { display:none; }
+      .header-div { height:24px; }
+      .header-title-name { font-size:16px; }
+      .header-right { gap:4px; }
+      .header-btn { padding:6px 8px; font-size:11px; }
+      .header-btn-icon { width:34px; }
+    }
 
     .card {
       background:var(--kaart); border:1px solid var(--kaartBorder);
-      border-radius:10px; width:100%; max-width:720px; overflow:hidden;
+      border-radius:10px; width:calc(100% - 40px); max-width:720px; overflow:hidden;
       margin-bottom:14px;
+    }
+    .setup-note { width:calc(100% - 40px) !important; }
+
+    .footer {
+      width:100%; margin-top:auto; padding:12px 24px;
+      border-top:1px solid var(--zachtgrijs); background:var(--footerBg);
+      display:flex; justify-content:space-between; align-items:center;
+      flex-wrap:wrap; gap:8px;
+    }
+    .footer span { font-size:12px; color:var(--grijs); font-weight:300; }
+    .footer .accent { color:var(--geel); font-weight:500; }
+    @media (max-width:540px) {
+      .footer { padding:8px 14px; font-size:11px; }
     }
 
     .config-bar {
@@ -215,17 +247,24 @@
 </head>
 <body>
 
-<div class="topbar">
-  <div class="brand">
-    <div class="brand-title">ARD — Kop</div>
-    <div class="brand-sub">Nieuwsbericht op atelierruimdenkers.nl plaatsen</div>
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-logo-ard">ARD</div>
+      <div class="header-logo-sub">ATELIERRUIMDENKERS</div>
+    </div>
+    <div class="header-div"></div>
+    <div>
+      <div class="header-title-label">Nieuws</div>
+      <div class="header-title-name">In-Kopper</div>
+    </div>
   </div>
-  <div class="topbar-actions">
-    <a class="back-btn" href="index.html" title="Terug naar Koppelbaas">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  <div class="header-right">
+    <a class="header-btn" href="index.html" title="Terug naar Koppelbaas" style="background:#000">
+      <span class="header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></span>
       Koppelbaas
     </a>
-    <button class="icon-btn" id="themeBtn" title="Wissel thema"></button>
+    <button class="header-btn header-btn-icon" id="themeBtn" title="Wissel thema" style="background:#000"></button>
   </div>
 </div>
 
@@ -257,8 +296,8 @@
         <label>Titel</label>
         <span class="counter" id="titleCounter">0 / 70</span>
       </div>
-      <input type="text" id="title" placeholder="Titel van het bericht" maxlength="100" />
-      <p class="hint">Richtlijn: max. 70 tekens voor goede leesbaarheid en SEO.</p>
+      <input type="text" id="title" placeholder="Titel van het bericht" maxlength="36" />
+      <p class="hint">Max. 36 tekens incl. spaties.</p>
     </div>
 
     <div class="field">
@@ -322,8 +361,13 @@
   </ol>
 </div>
 
+<div class="footer">
+  <span><span class="accent">/ </span>ARD / AtelierRuimDenkers — In-Kopper</span>
+  <span>Willem Buytewechstraat 45, Rotterdam</span>
+</div>
+
 <script>
-  const TITLE_MAX = 70;
+  const TITLE_MAX = 36;
   const WORDS_MAX = 100;
   const IMG_W = 1100;
   const IMG_MAX_H = 825;
@@ -339,12 +383,13 @@
 
   // ─── Theme ─────────────────────────────────────────────────────────────────
   const themeBtn = document.getElementById('themeBtn');
-  const sunSVG  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
-  const moonSVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+  const sunSVG  = '<span class="header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></span>';
+  const moonSVG = '<span class="header-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>';
   function applyTheme() {
     const dark = localStorage.getItem('kop_theme') === 'dark';
     document.body.classList.toggle('dark', dark);
-    themeBtn.innerHTML = dark ? sunSVG + ' Licht' : moonSVG + ' Donker';
+    themeBtn.innerHTML = dark ? sunSVG : moonSVG;
+    themeBtn.title = dark ? 'Licht thema' : 'Donker thema';
   }
   themeBtn.addEventListener('click', () => {
     const dark = localStorage.getItem('kop_theme') === 'dark';
@@ -358,8 +403,9 @@
   const usernameEl = document.getElementById('username');
   const appPwEl    = document.getElementById('appPassword');
 
-  usernameEl.value = localStorage.getItem('kop_username') || '';
-  usernameEl.addEventListener('change', () => localStorage.setItem('kop_username', usernameEl.value.trim()));
+  usernameEl.value = 'inkopper';
+  // Oude localStorage-key opruimen (nog aanwezig uit vorige versie)
+  localStorage.removeItem('kop_username');
 
   if (localStorage.getItem('kop_username')) {
     document.getElementById('setupNote').style.display = 'none';

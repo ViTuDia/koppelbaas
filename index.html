@@ -2809,7 +2809,7 @@ function setupEventListeners() {
         localStorage.setItem('kb_dark', STATE.ui.dark ? '1' : '0');
         applyTheme(); render(); break;
       case 'print': STATE.ui.headerMenu = false; render(); setTimeout(()=>window.print(),100); break;
-      case 'gotoKop': STATE.ui.headerMenu = false; window.location.href = 'kop.html'; break;
+      case 'gotoKop': STATE.ui.headerMenu = false; window.location.href = 'inkopper.html'; break;
       case 'showAlerts':
         STATE.ui.modal = 'alerts'; STATE.ui.modalData = null; STATE.ui.modalExtra = null;
         renderModal(); break;
