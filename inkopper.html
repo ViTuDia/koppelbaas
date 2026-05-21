@@ -316,7 +316,7 @@
   <div class="config-bar">
     <div class="config-field">
       <label>Gebruikersnaam</label>
-      <input type="text" id="username" autocomplete="username" placeholder="vincent" />
+      <input type="text" id="username" autocomplete="username" placeholder="inkopper" />
     </div>
     <div class="config-field wide">
       <label>Application Password</label>
@@ -466,7 +466,7 @@
   const usernameEl = document.getElementById('username');
   const appPwEl    = document.getElementById('appPassword');
 
-  usernameEl.value = 'inkopper';
+  // Geen prefill van username — placeholder "inkopper" doet het werk
   // Oude localStorage-key opruimen (nog aanwezig uit vorige versie)
   localStorage.removeItem('kop_username');
 
