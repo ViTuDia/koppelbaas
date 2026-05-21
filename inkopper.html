@@ -172,6 +172,7 @@
     .image-drop-label strong { color:var(--txtPrimary); display:block; margin-bottom:4px; }
     .image-drop-label span { font-size:12px; color:var(--txtSecondary); }
 
+    .image-drop.has-image { display:none; }
     .image-preview {
       margin-top:12px; display:none;
       border:1px solid var(--kaartBorder); border-radius:7px; overflow:hidden;
@@ -229,21 +230,6 @@
     }
     .pub-status a { color:inherit; text-decoration:underline; }
 
-    .edit-banner {
-      display:flex; justify-content:space-between; align-items:center;
-      background:color-mix(in srgb, var(--blauw) 12%, transparent);
-      border:1px solid color-mix(in srgb, var(--blauw) 40%, transparent);
-      border-radius:7px; padding:10px 14px; margin-bottom:14px;
-      font-size:13px; color:var(--blauw); flex-wrap:wrap; gap:8px;
-    }
-    .edit-banner a { color:var(--blauw); font-weight:600; text-decoration:underline; }
-    .btn-reset {
-      background:none; border:1px solid var(--blauw); color:var(--blauw);
-      padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;
-      cursor:pointer; font-family:inherit;
-      transition:background .15s, color .15s;
-    }
-    .btn-reset:hover { background:var(--blauw); color:#fff; }
 
     .setup-toggle {
       max-width:720px; width:calc(100% - 40px);
@@ -328,6 +314,17 @@
 
     <div class="field">
       <div class="field-header">
+        <label>Bestaand bericht bewerken <span style="font-weight:400;text-transform:none;letter-spacing:normal;color:var(--txtSecondary)">(optioneel)</span></label>
+        <span class="counter" id="editStatus"></span>
+      </div>
+      <select id="editSelect">
+        <option value="">— Nieuw bericht —</option>
+      </select>
+      <p class="hint">Kies een bestaand bericht om in te laden en aan te passen.</p>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
         <label>Categorie</label>
         <span class="counter" id="catStatus"></span>
       </div>
@@ -383,11 +380,6 @@
     </div>
 
     <div class="validation-box" id="validationBox"></div>
-
-    <div class="edit-banner" id="editBanner" style="display:none">
-      <span>Bewerken: <a id="editBannerLink" href="#" target="_blank" rel="noopener">post #<span id="editBannerId"></span></a></span>
-      <button type="button" class="btn-reset" id="newPostBtn">+ Nieuw bericht starten</button>
-    </div>
 
     <div class="actions">
       <button class="btn btn-primary" id="publishBtn">Publiceer</button>
@@ -593,6 +585,7 @@
     if (file.type !== 'image/jpeg') {
       imageFile = null; imageValid = false;
       imagePreviewEl.style.display = 'none';
+      imageDropEl.classList.remove('has-image');
       imgCounterEl.textContent = '✗ Alleen JPG';
       imgCounterEl.className = 'counter over';
       alert('Alleen JPG toegestaan. Converteer eerst je afbeelding (PNG/WebP worden niet geaccepteerd).');
@@ -611,6 +604,7 @@
         URL.revokeObjectURL(url);
         imageFile = null; imageValid = false;
         imagePreviewEl.style.display = 'none';
+        imageDropEl.classList.remove('has-image');
         imgCounterEl.textContent = '✗ Breedte ' + w + 'px';
         imgCounterEl.className = 'counter over';
         alert('Afbeelding moet exact ' + IMG_W + 'px breed zijn (was ' + w + 'px). Resize eerst in Photoshop/Preview.');
@@ -622,6 +616,7 @@
         URL.revokeObjectURL(url);
         imageFile = null; imageValid = false;
         imagePreviewEl.style.display = 'none';
+        imageDropEl.classList.remove('has-image');
         imgCounterEl.textContent = '✗ Hoogte ' + h + 'px';
         imgCounterEl.className = 'counter over';
         alert('Afbeelding mag max. ' + IMG_MAX_H + 'px hoog zijn (was ' + h + 'px). Knip eerst bij.');
@@ -632,8 +627,10 @@
       // OK
       imageFile = file;
       imageValid = true;
+      existingImageUrl = null;  // bestaande WP-foto wordt vervangen
       previewImgEl.src = url;
       imagePreviewEl.style.display = 'block';
+      imageDropEl.classList.add('has-image');
       imageInfoEl.innerHTML = w + '×' + h + 'px &nbsp;·&nbsp; ' +
         (file.size / 1024 / 1024).toFixed(1) + ' MB ' +
         '<span class="image-status valid">✓ OK</span>';
@@ -648,10 +645,11 @@
   }
 
   function removeImage() {
-    imageFile = null; imageValid = false;
+    imageFile = null; imageValid = false; existingImageUrl = null;
     imageFileEl.value = '';
     previewImgEl.src = '';
     imagePreviewEl.style.display = 'none';
+    imageDropEl.classList.remove('has-image');
     imgCounterEl.textContent = 'Geen afbeelding';
     imgCounterEl.className = 'counter';
   }
@@ -696,28 +694,23 @@
   document.getElementById('publishBtn').addEventListener('click', () => submit('publish'));
   document.getElementById('draftBtn').addEventListener('click',   () => submit('draft'));
 
-  // ─── Edit-mode state ──────────────────────────────────────────────────────
+  // ─── Edit-mode state + dropdown ───────────────────────────────────────────
   let currentPostId = null;
-  const editBanner    = document.getElementById('editBanner');
-  const editBannerId  = document.getElementById('editBannerId');
-  const editBannerLnk = document.getElementById('editBannerLink');
-  const publishBtn    = document.getElementById('publishBtn');
-  const draftBtn      = document.getElementById('draftBtn');
+  let existingImageUrl = null;   // URL van foto in WP, behouden tenzij vervangen
+  const publishBtn = document.getElementById('publishBtn');
+  const draftBtn   = document.getElementById('draftBtn');
+  const editSelect = document.getElementById('editSelect');
+  const editStatus = document.getElementById('editStatus');
 
-  function enterEditMode(postId, postLink) {
-    currentPostId = postId;
-    editBannerId.textContent = postId;
-    editBannerLnk.href = postLink || '#';
-    editBanner.style.display = 'flex';
-    publishBtn.textContent = 'Bijwerken & publiceren';
-    draftBtn.textContent   = 'Bijwerken als concept';
+  function setEditMode(on) {
+    publishBtn.textContent = on ? 'Bijwerken & publiceren' : 'Publiceer';
+    draftBtn.textContent   = on ? 'Bijwerken als concept'  : 'Sla op als concept';
   }
-  function exitEditMode() {
+
+  function resetForm() {
     currentPostId = null;
-    editBanner.style.display = 'none';
-    publishBtn.textContent = 'Publiceer';
-    draftBtn.textContent   = 'Sla op als concept';
-    // Velden leeggooien
+    existingImageUrl = null;
+    setEditMode(false);
     titleEl.value = '';
     contentEl.value = '';
     removeImage();
@@ -726,8 +719,109 @@
     contentEl.dispatchEvent(new Event('input'));
     document.getElementById('pubStatus').className = 'pub-status';
     document.getElementById('pubStatus').textContent = '';
+    editSelect.value = '';
   }
-  document.getElementById('newPostBtn').addEventListener('click', exitEditMode);
+
+  // Lijst van bestaande posts ophalen voor dropdown (alleen gepubliceerd, publiek endpoint)
+  async function loadEditList() {
+    try {
+      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts?per_page=50&_fields=id,title,date,status&orderby=date&order=desc');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const posts = await res.json();
+      if (!Array.isArray(posts)) throw new Error('Onverwacht antwoord');
+      const opts = ['<option value="">— Nieuw bericht —</option>'];
+      posts.forEach(p => {
+        const d = new Date(p.date);
+        const label = d.toLocaleDateString('nl-NL', {day:'2-digit',month:'2-digit',year:'2-digit'}) +
+                      ' — ' + (p.title?.rendered || '(zonder titel)');
+        opts.push('<option value="' + p.id + '">' + label.replace(/"/g,'&quot;') + '</option>');
+      });
+      editSelect.innerHTML = opts.join('');
+      editStatus.textContent = posts.length + ' berichten';
+      editStatus.className = 'counter ok';
+    } catch (e) {
+      editStatus.textContent = 'Kon lijst niet laden';
+      editStatus.className = 'counter warn';
+      console.warn('Edit-lijst:', e);
+    }
+  }
+  loadEditList();
+
+  // HTML → platte tekst voor textarea (omkering van nl2paragraphs + Terug-link strippen)
+  function htmlToPlainText(html) {
+    if (!html) return '';
+    // Strip Terug-link aan het eind
+    let h = html.replace(/<p>\s*<a[^>]*nieuws\/?[^>]*>\s*Terug\s*<\/a>\s*<\/p>\s*$/i, '').trim();
+    const doc = new DOMParser().parseFromString(h, 'text/html');
+    const blocks = [];
+    doc.body.childNodes.forEach(n => {
+      if (n.nodeType === 1 && n.tagName === 'P') {
+        // <br> binnen <p> → newlines
+        n.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+        blocks.push(n.textContent.trim());
+      } else if (n.nodeType === 3) {
+        const t = n.textContent.trim();
+        if (t) blocks.push(t);
+      }
+    });
+    return blocks.filter(b => b).join('\n\n');
+  }
+
+  // WP date "2026-05-21T14:23:45" → datetime-local "2026-05-21T14:23"
+  function wpDateToLocal(s) {
+    if (!s) return nowLocalISO();
+    return s.slice(0, 16);
+  }
+
+  async function loadPostIntoForm(id) {
+    if (!id) { resetForm(); return; }
+    editStatus.textContent = 'Inladen…';
+    editStatus.className = 'counter';
+    try {
+      const res = await fetch(SITE_URL + '/wp-json/wp/v2/posts/' + id + '?_fields=id,title,content,date,categories,featured_media,link,status');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const p = await res.json();
+      currentPostId = p.id;
+      titleEl.value   = p.title?.rendered || '';
+      contentEl.value = htmlToPlainText(p.content?.rendered || '');
+      pubDateEl.value = wpDateToLocal(p.date);
+      // Categorie
+      if (p.categories?.length) {
+        const want = String(p.categories[0]);
+        if ([...catEl.options].some(o => o.value === want)) catEl.value = want;
+      }
+      // Featured image preview
+      removeImage();
+      if (p.featured_media) {
+        try {
+          const mr = await fetch(SITE_URL + '/wp-json/wp/v2/media/' + p.featured_media + '?_fields=source_url,media_details');
+          if (mr.ok) {
+            const md = await mr.json();
+            existingImageUrl = md.source_url;
+            previewImgEl.src = md.source_url;
+            imagePreviewEl.style.display = 'block';
+            imageDropEl.classList.add('has-image');
+            const w = md.media_details?.width  || '?';
+            const h = md.media_details?.height || '?';
+            imageInfoEl.innerHTML = w + '×' + h + 'px &nbsp;·&nbsp; bestaande afbeelding ' +
+              '<span class="image-status valid">✓ Behouden</span>';
+            imgCounterEl.textContent = '✓ Bestaande';
+            imgCounterEl.className = 'counter ok';
+          }
+        } catch(e) {}
+      }
+      setEditMode(true);
+      titleEl.dispatchEvent(new Event('input'));
+      contentEl.dispatchEvent(new Event('input'));
+      editStatus.textContent = 'Geladen — post #' + p.id;
+      editStatus.className = 'counter ok';
+    } catch (e) {
+      editStatus.textContent = 'Inladen mislukt';
+      editStatus.className = 'counter over';
+      console.error(e);
+    }
+  }
+  editSelect.addEventListener('change', () => loadPostIntoForm(editSelect.value));
 
   async function submit(status) {
     if (!validate(status)) return;
@@ -800,14 +894,18 @@
       const pd = await pr.json();
       if (!pr.ok) throw new Error(pd.message || 'Onbekende fout bij ' + (isUpdate ? 'bijwerken' : 'aanmaken') + ' van post.');
 
-      // Succes — ga (of blijf) in edit-mode op deze post
-      enterEditMode(pd.id, pd.link);
+      // Succes — blijf in edit-mode op deze post
+      currentPostId = pd.id;
+      setEditMode(true);
+      // Vernieuw bestaande-image referentie als er een nieuwe is geüpload
+      if (mediaId) existingImageUrl = previewImgEl.src;
       statusEl.className = 'pub-status success';
-      const verb = isUpdate ? 'Bijgewerkt' : (status === 'publish' ? 'Gepubliceerd' : 'Concept opgeslagen');
-      const link = status === 'publish'
-        ? '<a href="' + pd.link + '" target="_blank">bekijk op site</a>'
-        : '<a href="' + SITE_URL + '/wp-admin/post.php?post=' + pd.id + '&action=edit" target="_blank">bewerken in WordPress</a>';
-      statusEl.innerHTML = '✓ ' + verb + ' — ' + link;
+      const verb = isUpdate
+        ? (status === 'publish' ? 'Bijgewerkt' : 'Concept bijgewerkt')
+        : (status === 'publish' ? 'Gepubliceerd' : 'Concept opgeslagen');
+      statusEl.innerHTML = status === 'publish'
+        ? '✓ ' + verb + ' — <a href="' + pd.link + '" target="_blank">bekijk op site</a>'
+        : '✓ ' + verb;
     } catch (err) {
       statusEl.className = 'pub-status error';
       statusEl.textContent = err.message || 'Verbindingsfout.';
