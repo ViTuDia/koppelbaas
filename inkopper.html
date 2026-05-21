@@ -316,7 +316,7 @@
   <div class="config-bar">
     <div class="config-field">
       <label>Gebruikersnaam</label>
-      <input type="text" id="username" autocomplete="username" placeholder="inkopper" />
+      <input type="text" id="username" autocomplete="username" placeholder="" />
     </div>
     <div class="config-field wide">
       <label>Application Password</label>
@@ -466,8 +466,9 @@
   const usernameEl = document.getElementById('username');
   const appPwEl    = document.getElementById('appPassword');
 
-  // Geen prefill van username — placeholder "inkopper" doet het werk
-  // Oude localStorage-key opruimen (nog aanwezig uit vorige versie)
+  // Geen prefill van username — forceer leeg, overrule browser-autofill
+  // van eerdere sessies (voorheen werd "inkopper" als waarde gezet)
+  usernameEl.value = '';
   localStorage.removeItem('kop_username');
 
   // ─── Setup-uitleg toggle ──────────────────────────────────────────────────
