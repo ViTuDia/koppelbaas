@@ -229,6 +229,22 @@
     }
     .pub-status a { color:inherit; text-decoration:underline; }
 
+    .edit-banner {
+      display:flex; justify-content:space-between; align-items:center;
+      background:color-mix(in srgb, var(--blauw) 12%, transparent);
+      border:1px solid color-mix(in srgb, var(--blauw) 40%, transparent);
+      border-radius:7px; padding:10px 14px; margin-bottom:14px;
+      font-size:13px; color:var(--blauw); flex-wrap:wrap; gap:8px;
+    }
+    .edit-banner a { color:var(--blauw); font-weight:600; text-decoration:underline; }
+    .btn-reset {
+      background:none; border:1px solid var(--blauw); color:var(--blauw);
+      padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600;
+      cursor:pointer; font-family:inherit;
+      transition:background .15s, color .15s;
+    }
+    .btn-reset:hover { background:var(--blauw); color:#fff; }
+
     .setup-toggle {
       max-width:720px; width:calc(100% - 40px);
       display:flex; justify-content:center;
@@ -315,7 +331,7 @@
         <label>Categorie</label>
         <span class="counter" id="catStatus"></span>
       </div>
-      <select id="category"><option value="1">Nieuws</option></select>
+      <select id="category"><option value="1" data-slug="nieuws">Nieuws</option></select>
     </div>
 
     <div class="field">
@@ -363,10 +379,15 @@
         <span class="counter" id="wordCounter">0 woorden</span>
       </div>
       <textarea id="content" placeholder="Schrijf hier je bericht…&#10;&#10;Alinea's werken gewoon met een lege regel ertussen."></textarea>
-      <p class="hint">Richtlijn: max. 100 woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.</p>
+      <p class="hint" id="contentHint">Max. 100 woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.</p>
     </div>
 
     <div class="validation-box" id="validationBox"></div>
+
+    <div class="edit-banner" id="editBanner" style="display:none">
+      <span>Bewerken: <a id="editBannerLink" href="#" target="_blank" rel="noopener">post #<span id="editBannerId"></span></a></span>
+      <button type="button" class="btn-reset" id="newPostBtn">+ Nieuw bericht starten</button>
+    </div>
 
     <div class="actions">
       <button class="btn btn-primary" id="publishBtn">Publiceer</button>
@@ -403,7 +424,14 @@
 
 <script>
   const TITLE_MAX = 36;
-  const WORDS_MAX = 100;
+  const WORDS_MAX_NIEUWS = 100;
+  const WORDS_MAX_OTHER  = 400;
+  function getWordsMax() {
+    const el = document.getElementById('category');
+    const opt = el && el.selectedOptions && el.selectedOptions[0];
+    const slug = (opt && opt.dataset && opt.dataset.slug) || '';
+    return slug === 'nieuws' ? WORDS_MAX_NIEUWS : WORDS_MAX_OTHER;
+  }
   const IMG_W = 1100;
   const IMG_MAX_H = 825;
   const DEFAULT_SITE = 'https://www.atelierruimdenkers.nl';
@@ -470,14 +498,18 @@
   // ─── Woordenteller ────────────────────────────────────────────────────────
   const contentEl = document.getElementById('content');
   const wordCnt   = document.getElementById('wordCounter');
-  contentEl.addEventListener('input', () => {
+  const contentHint = document.getElementById('contentHint');
+  function refreshWordCount() {
+    const max = getWordsMax();
     const words = contentEl.value.trim().split(/\s+/).filter(w => w).length;
-    wordCnt.textContent = words + ' / ' + WORDS_MAX;
+    wordCnt.textContent = words + ' / ' + max;
     wordCnt.className = 'counter' +
       (words === 0 ? '' :
-       words > WORDS_MAX ? ' over' :
-       words > WORDS_MAX * 0.85 ? ' warn' : ' ok');
-  });
+       words > max ? ' over' :
+       words > max * 0.85 ? ' warn' : ' ok');
+    contentHint.textContent = 'Max. ' + max + ' woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.';
+  }
+  contentEl.addEventListener('input', refreshWordCount);
 
   // ─── Publicatiedatum default = nu (lokale tijd) ───────────────────────────
   const pubDateEl = document.getElementById('pubDate');
@@ -510,10 +542,11 @@
       if (!Array.isArray(cats) || cats.length === 0) throw new Error('Lege lijst');
       const lastId = parseInt(localStorage.getItem('kop_lastCategoryId') || '1', 10);
       catEl.innerHTML = cats.map(c =>
-        '<option value="' + c.id + '"' + (c.id === lastId ? ' selected' : '') + '>' + c.name + '</option>'
+        '<option value="' + c.id + '" data-slug="' + (c.slug || '') + '"' + (c.id === lastId ? ' selected' : '') + '>' + c.name + '</option>'
       ).join('');
       catStatus.textContent = cats.length + ' categorieën';
       catStatus.className = 'counter ok';
+      refreshWordCount();
     } catch (e) {
       catEl.disabled = true;
       catStatus.textContent = 'Standaard (Nieuws)';
@@ -524,6 +557,7 @@
   loadCategories();
   catEl.addEventListener('change', () => {
     localStorage.setItem('kop_lastCategoryId', catEl.value);
+    refreshWordCount();
   });
 
   // ─── Afbeelding ───────────────────────────────────────────────────────────
@@ -632,8 +666,9 @@
     if (title.length > TITLE_MAX)
       errors.push('Titel is te lang (' + title.length + ' tekens, max. ' + TITLE_MAX + ').');
     if (!content) errors.push('Schrijf een bericht.');
-    if (content && words > WORDS_MAX)
-      errors.push('Bericht is te lang (' + words + ' woorden, max. ' + WORDS_MAX + ').');
+    const maxWords = getWordsMax();
+    if (content && words > maxWords)
+      errors.push('Bericht is te lang (' + words + ' woorden, max. ' + maxWords + ').');
     if (imageFile && !imageValid)
       errors.push('Afbeelding voldoet niet aan de eisen.');
     if (!pubDateEl.value)
@@ -659,6 +694,39 @@
 
   document.getElementById('publishBtn').addEventListener('click', () => submit('publish'));
   document.getElementById('draftBtn').addEventListener('click',   () => submit('draft'));
+
+  // ─── Edit-mode state ──────────────────────────────────────────────────────
+  let currentPostId = null;
+  const editBanner    = document.getElementById('editBanner');
+  const editBannerId  = document.getElementById('editBannerId');
+  const editBannerLnk = document.getElementById('editBannerLink');
+  const publishBtn    = document.getElementById('publishBtn');
+  const draftBtn      = document.getElementById('draftBtn');
+
+  function enterEditMode(postId, postLink) {
+    currentPostId = postId;
+    editBannerId.textContent = postId;
+    editBannerLnk.href = postLink || '#';
+    editBanner.style.display = 'flex';
+    publishBtn.textContent = 'Bijwerken & publiceren';
+    draftBtn.textContent   = 'Bijwerken als concept';
+  }
+  function exitEditMode() {
+    currentPostId = null;
+    editBanner.style.display = 'none';
+    publishBtn.textContent = 'Publiceer';
+    draftBtn.textContent   = 'Sla op als concept';
+    // Velden leeggooien
+    titleEl.value = '';
+    contentEl.value = '';
+    removeImage();
+    pubDateEl.value = nowLocalISO();
+    titleEl.dispatchEvent(new Event('input'));
+    contentEl.dispatchEvent(new Event('input'));
+    document.getElementById('pubStatus').className = 'pub-status';
+    document.getElementById('pubStatus').textContent = '';
+  }
+  document.getElementById('newPostBtn').addEventListener('click', exitEditMode);
 
   async function submit(status) {
     if (!validate(status)) return;
@@ -704,7 +772,10 @@
         mediaId = md.id;
       }
 
-      statusEl.textContent = status === 'publish' ? 'Publiceren…' : 'Concept opslaan…';
+      const isUpdate = !!currentPostId;
+      statusEl.textContent = isUpdate
+        ? (status === 'publish' ? 'Bijwerken…' : 'Concept bijwerken…')
+        : (status === 'publish' ? 'Publiceren…' : 'Concept opslaan…');
       // WP REST API wil ISO 8601 mét seconden. datetime-local geeft alleen YYYY-MM-DDTHH:MM.
       const dateStr = pubDateEl.value.length === 16 ? pubDateEl.value + ':00' : pubDateEl.value;
       const body = {
@@ -715,28 +786,27 @@
         categories: [parseInt(catEl.value, 10) || 1],
       };
       if (mediaId) body.featured_media = mediaId;
+      // Bij update: featured_media alleen meesturen als gebruiker nieuwe afbeelding uploadde
 
-      const pr = await fetch(SITE_URL + '/wp-json/wp/v2/posts', {
+      const url = isUpdate
+        ? SITE_URL + '/wp-json/wp/v2/posts/' + currentPostId
+        : SITE_URL + '/wp-json/wp/v2/posts';
+      const pr = await fetch(url, {
         method: 'POST',
         headers: { ...authHdr, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       const pd = await pr.json();
-      if (!pr.ok) throw new Error(pd.message || 'Onbekende fout bij aanmaken post.');
+      if (!pr.ok) throw new Error(pd.message || 'Onbekende fout bij ' + (isUpdate ? 'bijwerken' : 'aanmaken') + ' van post.');
 
-      if (status === 'publish') {
-        statusEl.className = 'pub-status success';
-        statusEl.innerHTML = '✓ Gepubliceerd — <a href="' + pd.link + '" target="_blank">bekijk op site</a>';
-        // Reset
-        titleEl.value = ''; contentEl.value = '';
-        removeImage();
-        pubDateEl.value = nowLocalISO();
-        titleEl.dispatchEvent(new Event('input'));
-        contentEl.dispatchEvent(new Event('input'));
-      } else {
-        statusEl.className = 'pub-status success';
-        statusEl.innerHTML = '✓ Concept opgeslagen — <a href="' + SITE_URL + '/wp-admin/post.php?post=' + pd.id + '&action=edit" target="_blank">bewerken in WordPress</a>';
-      }
+      // Succes — ga (of blijf) in edit-mode op deze post
+      enterEditMode(pd.id, pd.link);
+      statusEl.className = 'pub-status success';
+      const verb = isUpdate ? 'Bijgewerkt' : (status === 'publish' ? 'Gepubliceerd' : 'Concept opgeslagen');
+      const link = status === 'publish'
+        ? '<a href="' + pd.link + '" target="_blank">bekijk op site</a>'
+        : '<a href="' + SITE_URL + '/wp-admin/post.php?post=' + pd.id + '&action=edit" target="_blank">bewerken in WordPress</a>';
+      statusEl.innerHTML = '✓ ' + verb + ' — ' + link;
     } catch (err) {
       statusEl.className = 'pub-status error';
       statusEl.textContent = err.message || 'Verbindingsfout.';
