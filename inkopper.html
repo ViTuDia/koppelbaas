@@ -176,7 +176,7 @@
       margin-top:12px; display:none;
       border:1px solid var(--kaartBorder); border-radius:7px; overflow:hidden;
     }
-    .image-preview img { width:100%; display:block; max-height:280px; object-fit:cover; }
+    .image-preview img { width:100%; display:block; height:auto; object-fit:contain; background:var(--catGroupBg); }
     .image-info {
       padding:8px 12px; background:var(--catGroupBg);
       font-size:12px; color:var(--txtSecondary);
@@ -229,20 +229,47 @@
     }
     .pub-status a { color:inherit; text-decoration:underline; }
 
+    .setup-toggle {
+      max-width:720px; width:calc(100% - 40px);
+      display:flex; justify-content:center;
+      margin-bottom:14px;
+    }
+    .setup-toggle button {
+      background:none; border:none; cursor:pointer; font-family:inherit;
+      font-size:12px; color:var(--txtSecondary);
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:6px;
+      transition:background .15s, color .15s;
+    }
+    .setup-toggle button:hover { background:var(--lichtgrijs); color:var(--txtPrimary); }
+    .setup-toggle .qmark {
+      width:18px; height:18px; border-radius:50%;
+      background:var(--geel); color:#000;
+      display:inline-flex; align-items:center; justify-content:center;
+      font-weight:600; font-size:11px;
+    }
     .setup-note {
-      max-width:720px; width:100%;
+      max-width:720px; width:calc(100% - 40px);
       background:color-mix(in srgb, var(--geel) 12%, transparent);
       border:1px solid color-mix(in srgb, var(--geel) 45%, transparent);
       border-radius:8px; padding:14px 18px;
       font-size:13px; line-height:1.55; color:var(--txtPrimary);
+      margin-bottom:14px; position:relative;
     }
-    .setup-note strong { display:block; margin-bottom:6px; }
+    .setup-note strong { display:block; margin-bottom:6px; padding-right:24px; }
     .setup-note ol { padding-left:18px; margin-top:6px; }
     .setup-note ol li { margin-bottom:3px; }
     .setup-note code {
       background:var(--lichtgrijs); padding:1px 5px; border-radius:4px;
       font-family:'SF Mono', Menlo, monospace; font-size:12px;
     }
+    .setup-note .close-x {
+      position:absolute; top:8px; right:10px;
+      background:none; border:none; cursor:pointer;
+      color:var(--txtSecondary); font-size:18px; line-height:1;
+      padding:2px 6px; border-radius:4px; font-family:inherit;
+    }
+    .setup-note .close-x:hover { background:var(--lichtgrijs); color:var(--txtPrimary); }
   </style>
 </head>
 <body>
@@ -350,14 +377,22 @@
   </div>
 </div>
 
-<div class="setup-note" id="setupNote">
-  <strong>Eerste keer: Application Password aanmaken</strong>
+<div class="setup-toggle" id="setupToggle">
+  <button type="button" id="setupToggleBtn">
+    <span class="qmark">?</span>
+    <span>Application Password aanmaken in WordPress</span>
+  </button>
+</div>
+
+<div class="setup-note" id="setupNote" style="display:none">
+  <button type="button" class="close-x" id="setupCloseBtn" title="Verbergen">✕</button>
+  <strong>Application Password aanmaken</strong>
   <ol>
-    <li>Log in op WordPress → Gebruikers → Jouw profiel</li>
+    <li>WordPress-admin → Gebruikers → klik je user (bv. <code>inkopper</code>)</li>
     <li>Scroll naar <strong>Application Passwords</strong></li>
-    <li>Geef het een naam (bijv. <code>Kop</code>) en klik op <em>Nieuw application password toevoegen</em></li>
+    <li>Geef het een naam (bv. <code>In-Kopper</code>) en klik op <em>Nieuw application password toevoegen</em></li>
     <li>WordPress toont eenmalig een 24-tekens code (<code>xxxx xxxx xxxx xxxx xxxx xxxx</code>) — kopieer 'm en bewaar in je password manager</li>
-    <li>Vul site-URL en gebruikersnaam in (worden onthouden); plak het password — het wordt niet opgeslagen, je password manager kan het volgende keer invullen</li>
+    <li>Plak die code in het Application Password-veld hierboven (1Password/Keychain kan 'm volgende keer automatisch invullen)</li>
   </ol>
 </div>
 
@@ -372,7 +407,7 @@
   const IMG_W = 1100;
   const IMG_MAX_H = 825;
   const DEFAULT_SITE = 'https://www.atelierruimdenkers.nl';
-  const TERUG_LINK = '<p><a href="http://www.atelierruimdenkers.nl/nieuws/">Terug</a></p>';
+  const TERUG_LINK = '<p><a href="https://www.atelierruimdenkers.nl/nieuws/">Terug</a></p>';
 
   // ─── Klik op veld met vooringevulde waarde → selecteer alles ─────────────
   document.querySelectorAll('input[type="text"], input[type="datetime-local"]').forEach(el => {
@@ -407,9 +442,20 @@
   // Oude localStorage-key opruimen (nog aanwezig uit vorige versie)
   localStorage.removeItem('kop_username');
 
-  if (localStorage.getItem('kop_username')) {
-    document.getElementById('setupNote').style.display = 'none';
+  // ─── Setup-uitleg toggle ──────────────────────────────────────────────────
+  const setupBtn   = document.getElementById('setupToggleBtn');
+  const setupNote  = document.getElementById('setupNote');
+  const setupClose = document.getElementById('setupCloseBtn');
+  const setupTglWr = document.getElementById('setupToggle');
+  function showSetup(open) {
+    setupNote.style.display  = open ? 'block' : 'none';
+    setupTglWr.style.display = open ? 'none'  : 'flex';
+    localStorage.setItem('kop_setupOpen', open ? '1' : '0');
   }
+  setupBtn.addEventListener('click',   () => showSetup(true));
+  setupClose.addEventListener('click', () => showSetup(false));
+  // Default: dicht. localStorage onthoudt voorkeur.
+  showSetup(localStorage.getItem('kop_setupOpen') === '1');
 
   // ─── Titelcounter ─────────────────────────────────────────────────────────
   const titleEl  = document.getElementById('title');
@@ -497,6 +543,9 @@
   imageDropEl.addEventListener('drop', e => {
     e.preventDefault();
     imageDropEl.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 1) {
+      alert('Slechts 1 afbeelding per bericht. De eerste wordt gebruikt.');
+    }
     const f = e.dataTransfer.files[0];
     if (f) handleImage(f);
   });
