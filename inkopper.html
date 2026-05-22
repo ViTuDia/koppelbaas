@@ -356,6 +356,7 @@
         <span class="counter" id="catStatus"></span>
       </div>
       <select id="category"><option value="1" data-slug="updates">Updates</option></select>
+      <p class="hint" id="catHint">Korte nieuwsupdate over het bureau — voor wie ons volgt.</p>
     </div>
 
     <div class="field">
@@ -593,6 +594,7 @@
       catStatus.textContent = cats.length + ' categorieën';
       catStatus.className = 'counter ok';
       refreshWordCount();
+      refreshCatHint();
     } catch (e) {
       catEl.disabled = true;
       catStatus.textContent = 'Standaard (Updates)';
@@ -601,9 +603,22 @@
     }
   }
   loadCategories();
+  const catHint = document.getElementById('catHint');
+  function refreshCatHint() {
+    const opt = catEl.selectedOptions && catEl.selectedOptions[0];
+    const slug = (opt && opt.dataset && opt.dataset.slug) || '';
+    if (slug === 'updates' || slug === 'nieuws') {
+      catHint.innerHTML = 'Korte nieuwsupdate over het bureau — voor wie ons volgt.';
+    } else if (slug === 'inzicht') {
+      catHint.innerHTML = 'Langere post of blog — deel iets van <em>waarde</em> voor de lezer (geen bureau-nieuws).';
+    } else {
+      catHint.textContent = '';
+    }
+  }
   catEl.addEventListener('change', () => {
     localStorage.setItem('kop_lastCategoryId', catEl.value);
     refreshWordCount();
+    refreshCatHint();
   });
 
   // ─── Afbeelding ───────────────────────────────────────────────────────────
