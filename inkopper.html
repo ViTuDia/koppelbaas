@@ -210,8 +210,6 @@
     .btn:disabled { opacity:.4; cursor:not-allowed; }
     .btn-primary { background:var(--txtPrimary); color:var(--bg); }
     .btn-primary:hover:not(:disabled) { opacity:.85; }
-    .btn-draft { background:var(--bg); color:var(--txtPrimary); border:1px solid var(--inputBorder); }
-    .btn-draft:hover:not(:disabled) { background:var(--lichtgrijs); }
 
     .pub-status {
       margin-left:auto; font-size:13px; padding:8px 13px; border-radius:6px; display:none;
@@ -392,7 +390,6 @@
 
     <div class="actions">
       <button class="btn btn-primary" id="publishBtn">Publiceer</button>
-      <button class="btn btn-draft" id="draftBtn">Sla op als concept</button>
       <span class="pub-status" id="pubStatus"></span>
     </div>
 
@@ -747,19 +744,16 @@
   }
 
   document.getElementById('publishBtn').addEventListener('click', () => submit('publish'));
-  document.getElementById('draftBtn').addEventListener('click',   () => submit('draft'));
 
   // ─── Edit-mode state + dropdown ───────────────────────────────────────────
   let currentPostId = null;
   let existingImageUrl = null;   // URL van foto in WP, behouden tenzij vervangen
   const publishBtn = document.getElementById('publishBtn');
-  const draftBtn   = document.getElementById('draftBtn');
   const editSelect = document.getElementById('editSelect');
   const editStatus = document.getElementById('editStatus');
 
   function setEditMode(on) {
     publishBtn.textContent = on ? 'Bijwerken & publiceren' : 'Publiceer';
-    draftBtn.textContent   = on ? 'Bijwerken als concept'  : 'Sla op als concept';
   }
 
   function resetForm() {
@@ -956,9 +950,7 @@
       }
 
       const isUpdate = !!currentPostId;
-      statusEl.textContent = isUpdate
-        ? (status === 'publish' ? 'Bijwerken…' : 'Concept bijwerken…')
-        : (status === 'publish' ? 'Publiceren…' : 'Concept opslaan…');
+      statusEl.textContent = isUpdate ? 'Bijwerken…' : 'Publiceren…';
       // WP REST API wil ISO 8601 mét seconden. datetime-local geeft alleen YYYY-MM-DDTHH:MM.
       const dateStr = pubDateEl.value.length === 16 ? pubDateEl.value + ':00' : pubDateEl.value;
       const body = {
@@ -988,15 +980,11 @@
       setEditMode(true);
       // Vernieuw bestaande-image referentie als er een nieuwe is geüpload
       if (mediaId) existingImageUrl = previewImgEl.src;
-      // Dropdown bijwerken zodat de net gepubliceerde post (of het concept) erin staat
+      // Dropdown bijwerken zodat de net gepubliceerde post erin staat
       loadLatestPost(true);
       statusEl.className = 'pub-status success';
-      const verb = isUpdate
-        ? (status === 'publish' ? 'Bijgewerkt' : 'Concept bijgewerkt')
-        : (status === 'publish' ? 'Gepubliceerd' : 'Concept opgeslagen');
-      statusEl.innerHTML = status === 'publish'
-        ? '✓ ' + verb + ' — <a href="' + pd.link + '" target="_blank">bekijk op site</a>'
-        : '✓ ' + verb;
+      statusEl.innerHTML = '✓ ' + (isUpdate ? 'Bijgewerkt' : 'Gepubliceerd') +
+        ' — <a href="' + pd.link + '" target="_blank">bekijk op site</a>';
     } catch (err) {
       statusEl.className = 'pub-status error';
       statusEl.textContent = err.message || 'Verbindingsfout.';
