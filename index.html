@@ -1013,7 +1013,7 @@ function renderHeader(c, devs, kansen, matches, alarms) {
         <div class="header-menu" style="display:${STATE.ui.headerMenu?'block':'none'};position:absolute;right:0;top:100%;margin-top:4px;background:${c.kaart};border:1px solid ${c.zachtgrijs};border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:200px;z-index:500;padding:4px 0">
           ${[
             {action:'showAdmin',icon:ico('settings',16),label:'Instellingen'},
-            {action:'gotoKop',icon:ico('pencil',16),label:'Nieuwsbericht plaatsen'},
+            {action:'gotoKop',icon:ico('pencil',16),label:'De In-Kopper'},
             {action:'print',icon:ico('printer',16),label:'Printen'},
             {action:'toggleDark',icon:STATE.ui.dark?ico('sun',16):ico('moon',16),label:STATE.ui.dark?'Licht thema':'Donker thema'},
             {action:'logout',icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',label:'Uitloggen',color:c.rood}
