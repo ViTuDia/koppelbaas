@@ -328,7 +328,8 @@
         <input type="file" id="imageFile" accept="image/jpeg" />
         <div class="image-drop-label">
           <strong>Klik of sleep een afbeelding hierheen</strong>
-          <span>JPG &nbsp;·&nbsp; exact 1100px breed &nbsp;·&nbsp; max. 825px hoog</span>
+          <span>JPG &nbsp;·&nbsp; 1100px breed &nbsp;·&nbsp; max. 825px hoog<br>
+          bestandsnaam: <code style="font-size:11px;background:rgba(0,0,0,0.05);padding:1px 4px;border-radius:3px">AtelierRuimDenkers-&lt;beschrijving&gt;.jpg</code></span>
         </div>
       </div>
       <div class="image-preview" id="imagePreview">
@@ -630,6 +631,9 @@
   });
   document.getElementById('removeImgBtn').addEventListener('click', removeImage);
 
+  // Bestandsnaam-format: AtelierRuimDenkers-<kebab-slug>.jpg
+  const FILENAME_RX = /^AtelierRuimDenkers-[a-z0-9]+(-[a-z0-9]+)*\.jpg$/;
+
   function handleImage(file) {
     if (!file) return;
 
@@ -641,6 +645,24 @@
       imgCounterEl.textContent = '✗ Alleen JPG';
       imgCounterEl.className = 'counter over';
       alert('Alleen JPG toegestaan. Converteer eerst je afbeelding (PNG/WebP worden niet geaccepteerd).');
+      imageFileEl.value = '';
+      return;
+    }
+
+    // 2. Bestandsnaam-check
+    if (!FILENAME_RX.test(file.name)) {
+      imageFile = null; imageValid = false;
+      imagePreviewEl.style.display = 'none';
+      imageDropEl.classList.remove('has-image');
+      imgCounterEl.textContent = '✗ Bestandsnaam';
+      imgCounterEl.className = 'counter over';
+      alert(
+        'Bestandsnaam voldoet niet aan het format.\n\n' +
+        'Vereist: AtelierRuimDenkers-<beschrijving>.jpg\n' +
+        '(kebab-case, kleine letters, geen spaties of diacritics)\n\n' +
+        'Voorbeeld: AtelierRuimDenkers-start-bouw-rotterdam.jpg\n\n' +
+        'Jouw bestand: ' + file.name
+      );
       imageFileEl.value = '';
       return;
     }
@@ -928,14 +950,8 @@
       let mediaId = null;
       if (imageFile && imageValid) {
         statusEl.textContent = 'Afbeelding uploaden…';
-        const slug = slugify(titleEl.value);
-        const renamed = new File(
-          [imageFile],
-          'AtelierRuimDenkers-' + (slug || 'foto') + '.jpg',
-          { type: 'image/jpeg' }
-        );
         const fd = new FormData();
-        fd.append('file', renamed, renamed.name);
+        fd.append('file', imageFile, imageFile.name);
 
         const mr = await fetch(SITE_URL + '/wp-json/wp/v2/media', {
           method: 'POST', headers: { ...authHdr }, body: fd,
