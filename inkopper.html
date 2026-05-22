@@ -382,10 +382,10 @@
     <div class="field">
       <div class="field-header">
         <label>Meta-beschrijving (SEO)</label>
-        <span class="counter" id="metaCounter">0 / 155</span>
+        <span class="counter" id="metaCounter">0 / 156</span>
       </div>
       <textarea id="metaDesc" rows="2" style="min-height:auto;line-height:1.5;font-size:14px" placeholder="Korte samenvatting voor zoekmachines"></textarea>
-      <p class="hint">Automatisch gegenereerd uit je bericht. Pas aan voor scherpere SEO. Max. 155 tekens.</p>
+      <p class="hint">Automatisch gegenereerd uit je bericht. SEO sweet spot: 120–156 tekens.</p>
     </div>
 
     <div class="validation-box" id="validationBox"></div>
@@ -517,7 +517,9 @@
   });
 
   // ─── Meta-beschrijving (SEO) ──────────────────────────────────────────────
-  const META_MAX = 155;
+  // SEO sweet spot: 120-156 tekens
+  const META_MIN = 120;
+  const META_MAX = 156;
   const metaEl    = document.getElementById('metaDesc');
   const metaCnt   = document.getElementById('metaCounter');
   let metaUserEdited = false;
@@ -528,10 +530,10 @@
     metaCnt.className = 'counter' +
       (len === 0 ? '' :
        len > META_MAX ? ' over' :
-       len > META_MAX * 0.85 ? ' warn' : ' ok');
+       len < META_MIN ? ' warn' : ' ok');
   }
   function autoFillMeta() {
-    // Eerste ~155 tekens van content, op woordgrens afgekapt
+    // Streef naar de upper bound (156) op woordgrens
     const txt = contentEl.value.trim().replace(/\s+/g, ' ');
     if (!txt) { metaEl.value = ''; refreshMetaCount(); return; }
     if (txt.length <= META_MAX) {
@@ -539,7 +541,7 @@
     } else {
       let cut = txt.slice(0, META_MAX - 1);
       const lastSpace = cut.lastIndexOf(' ');
-      if (lastSpace > META_MAX * 0.6) cut = cut.slice(0, lastSpace);
+      if (lastSpace > META_MIN) cut = cut.slice(0, lastSpace);
       metaEl.value = cut + '…';
     }
     refreshMetaCount();
