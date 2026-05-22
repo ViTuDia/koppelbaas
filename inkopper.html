@@ -366,6 +366,15 @@
       </div>
       <textarea id="content" placeholder="Schrijf hier je bericht…&#10;&#10;Alinea's werken gewoon met een lege regel ertussen."></textarea>
       <p class="hint" id="contentHint">Max. 100 woorden. Onderaan wordt automatisch een "Terug"-link toegevoegd.</p>
+      <details class="hint" style="margin-top:6px">
+        <summary style="cursor:pointer;color:var(--grijs)">Een link toevoegen?</summary>
+        <div style="margin-top:8px;padding:10px 12px;background:var(--bg-hover);border-radius:6px;line-height:1.6">
+          Je kunt een link in je tekst zetten door dit stukje "code" te gebruiken. Knip en plak het en pas de tekst aan:
+          <p style="margin:8px 0 0">
+            <code>&lt;a href="https://voorbeeld.nl"&gt;tekst van de link&lt;/a&gt;</code>
+          </p>
+        </div>
+      </details>
     </div>
 
     <div class="field">
@@ -754,8 +763,15 @@
 
   // ─── Publiceren ───────────────────────────────────────────────────────────
   function nl2paragraphs(text) {
+    const BLOCK_RE = /^<(ul|ol|h[1-6]|blockquote|table|pre|figure|div|p|hr)\b/i;
     return text.split(/\n\s*\n/)
-      .map(p => '<p>' + p.trim().replace(/\n/g, '<br>') + '</p>')
+      .map(p => {
+        const t = p.trim();
+        if (!t) return '';
+        if (BLOCK_RE.test(t)) return t;
+        return '<p>' + t.replace(/\n/g, '<br>') + '</p>';
+      })
+      .filter(Boolean)
       .join('\n');
   }
 
