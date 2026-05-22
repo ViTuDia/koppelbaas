@@ -312,25 +312,6 @@
 
     <div class="field">
       <div class="field-header">
-        <label>Bestaand bericht bewerken <span style="font-weight:400;text-transform:none;letter-spacing:normal;color:var(--txtSecondary)">(optioneel)</span></label>
-        <span class="counter" id="editStatus"></span>
-      </div>
-      <select id="editSelect">
-        <option value="">— Nieuw bericht —</option>
-      </select>
-      <p class="hint">Vul je credentials in om ook concepten te zien. Selecteer een post om in te laden en aan te passen.</p>
-    </div>
-
-    <div class="field">
-      <div class="field-header">
-        <label>Categorie</label>
-        <span class="counter" id="catStatus"></span>
-      </div>
-      <select id="category"><option value="1" data-slug="updates">Updates</option></select>
-    </div>
-
-    <div class="field">
-      <div class="field-header">
         <label>Titel</label>
         <span class="counter" id="titleCounter">0 / 36</span>
       </div>
@@ -370,6 +351,14 @@
 
     <div class="field">
       <div class="field-header">
+        <label>Categorie</label>
+        <span class="counter" id="catStatus"></span>
+      </div>
+      <select id="category"><option value="1" data-slug="updates">Updates</option></select>
+    </div>
+
+    <div class="field">
+      <div class="field-header">
         <label>Bericht</label>
         <span class="counter" id="wordCounter">0 woorden</span>
       </div>
@@ -391,6 +380,17 @@
     <div class="actions">
       <button class="btn btn-primary" id="publishBtn">Publiceer</button>
       <span class="pub-status" id="pubStatus"></span>
+    </div>
+
+    <div class="field" style="margin-top:28px;padding-top:18px;border-top:1px solid var(--zachtgrijs)">
+      <div class="field-header">
+        <label>Bestaand bericht bewerken <span style="font-weight:400;text-transform:none;letter-spacing:normal;color:var(--txtSecondary)">(optioneel)</span></label>
+        <span class="counter" id="editStatus"></span>
+      </div>
+      <select id="editSelect">
+        <option value="">— Nieuw bericht —</option>
+      </select>
+      <p class="hint">Vul je credentials in om ook concepten te zien. Selecteer een post om in te laden en aan te passen.</p>
     </div>
 
   </div>
