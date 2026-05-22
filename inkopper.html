@@ -385,7 +385,7 @@
         <span class="counter" id="metaCounter">0 / 156</span>
       </div>
       <textarea id="metaDesc" rows="2" style="min-height:auto;line-height:1.5;font-size:14px" placeholder="Korte samenvatting voor zoekmachines"></textarea>
-      <p class="hint">Automatisch gegenereerd uit je bericht. SEO sweet spot: 120–156 tekens.</p>
+      <p class="hint">Automatisch gegenereerd uit je bericht. Mik op <span style="color:var(--groen);font-weight:600">groen (120–156 tekens)</span> — <span style="color:var(--oranje)">oranje = te kort</span>, <span style="color:var(--rood)">rood = te lang</span>.</p>
     </div>
 
     <div class="validation-box" id="validationBox"></div>
@@ -526,11 +526,18 @@
 
   function refreshMetaCount() {
     const len = metaEl.value.length;
-    metaCnt.textContent = len + ' / ' + META_MAX;
-    metaCnt.className = 'counter' +
-      (len === 0 ? '' :
-       len > META_MAX ? ' over' :
-       len < META_MIN ? ' warn' : ' ok');
+    let status = '', cls = '';
+    if (len === 0) {
+      status = '';
+    } else if (len > META_MAX) {
+      status = ' · te lang'; cls = ' over';
+    } else if (len < META_MIN) {
+      status = ' · te kort'; cls = ' warn';
+    } else {
+      status = ' · perfect'; cls = ' ok';
+    }
+    metaCnt.textContent = len + ' / ' + META_MAX + status;
+    metaCnt.className = 'counter' + cls;
   }
   function autoFillMeta() {
     // Streef naar de upper bound (156) op woordgrens
